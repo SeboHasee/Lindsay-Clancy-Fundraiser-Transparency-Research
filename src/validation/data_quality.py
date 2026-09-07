@@ -1,21 +1,24 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 ALLOWED_CURRENCIES = {"USD"}
 
 
 def _parse_iso(value: str) -> datetime | None:
+    normalized = f"{value[:-1]}+00:00" if value.endswith("Z") else value
     try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except Exception:
+        return datetime.fromisoformat(normalized)
+    except ValueError:
         return None
 
 
 def validate_donation_records(records: list[dict]) -> list[dict[str, str]]:
     issues: list[dict[str, str]] = []
     seen_ids: set[str] = set()
-    now = datetime.now(timezone.utc)
+    seen_observations: set[tuple[str, str, str]] = set()
+    record_snapshots: dict[str, tuple[str | None, str | None]] = {}
+    now = datetime.now(UTC)
 
     for record in records:
         rid = record.get("donation_id", "UNKNOWN")
@@ -48,5 +51,26 @@ def validate_donation_records(records: list[dict]) -> list[dict[str, str]]:
 
         if record.get("anonymous_indicator") and record.get("displayed_donor_name"):
             issues.append({"record_id": rid, "issue": "inconsistent anonymous flag"})
+
+        obs_key = (
+            str(record.get("source_id", "")),
+            str(record.get("donation_id", "")),
+            str(record.get("collection_timestamp", "")),
+        )
+        if obs_key in seen_observations:
+            issues.append({"record_id": rid, "issue": "duplicate observation"})
+        seen_observations.add(obs_key)
+
+        if rid in record_snapshots:
+            previous_amount, previous_name = record_snapshots[rid]
+            if previous_amount != str(record.get("displayed_amount")):
+                issues.append({"record_id": rid, "issue": "conflicting amounts"})
+            if previous_name != str(record.get("displayed_donor_name")):
+                issues.append({"record_id": rid, "issue": "conflicting names"})
+        record_snapshots[rid] = (str(record.get("displayed_amount")), str(record.get("displayed_donor_name")))
+
+        entity_ref = record.get("entity_id")
+        if entity_ref is not None and not str(entity_ref).strip():
+            issues.append({"record_id": rid, "issue": "invalid entity reference"})
 
     return issues

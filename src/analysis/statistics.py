@@ -1,19 +1,22 @@
 from __future__ import annotations
 
-from pathlib import Path
 import json
+from datetime import UTC, datetime
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 
 
-def summarize_donations(records: list[dict], output_dir: Path) -> dict:
+def summarize_donations(records: list[dict], output_dir: Path, source_count: int = 0, dataset_version: str = "v0.1.0") -> dict:
     output_dir.mkdir(parents=True, exist_ok=True)
     frame = pd.DataFrame(records)
     amounts = frame.get("normalized_amount", pd.Series(dtype=float)).dropna().astype(float)
 
+    summary: dict[str, int | float]
     if amounts.empty:
         summary = {
-            "observed_record_count": int(len(frame.index)),
+            "observed_record_count": len(frame.index),
             "anonymous_count": int(frame.get("anonymous_indicator", pd.Series(dtype=bool)).fillna(False).sum()) if not frame.empty else 0,
             "displayed_name_count": int(frame.get("displayed_donor_name", pd.Series(dtype=object)).notna().sum()) if not frame.empty else 0,
             "observed_sum": 0,
@@ -33,7 +36,7 @@ def summarize_donations(records: list[dict], output_dir: Path) -> dict:
     else:
         p = np.percentile(amounts, [25, 50, 75, 90, 95, 99])
         summary = {
-            "observed_record_count": int(len(frame.index)),
+            "observed_record_count": len(frame.index),
             "anonymous_count": int(frame.get("anonymous_indicator", pd.Series(dtype=bool)).fillna(False).sum()),
             "displayed_name_count": int(frame.get("displayed_donor_name", pd.Series(dtype=object)).notna().sum()),
             "observed_sum": float(amounts.sum()),
@@ -52,10 +55,11 @@ def summarize_donations(records: list[dict], output_dir: Path) -> dict:
         }
 
     payload = {
-        "generation_timestamp": pd.Timestamp.utcnow().isoformat(),
-        "dataset_version": "v0.1.0",
+        "generation_timestamp": datetime.now(UTC).isoformat(),
+        "dataset_version": dataset_version,
         "methodology_version": "v0.1.0",
-        "source_coverage": "Partially observable dataset",
+        "coverage": "Partially observable dataset",
+        "source_count": source_count,
         "limitations": "Publicly observable data is not necessarily the complete donation ledger.",
         "metrics": summary,
     }

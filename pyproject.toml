@@ -18,4 +18,4 @@ dependencies = [
 testpaths = ["tests"]
 
 [tool.setuptools]
-packages = ["research", "src", "src.collectors", "src.verification", "src.analysis", "src.database", "src.validation", "src.publication", "src.cli"]
+packages = ["research", "src", "src.collectors", "src.verification", "src.analysis", "src.database", "src.validation", "src.publication", "src.cli", "src.sources", "src.monitoring"]

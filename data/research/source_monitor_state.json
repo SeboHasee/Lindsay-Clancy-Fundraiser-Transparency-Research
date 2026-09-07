@@ -1,0 +1,28 @@
+{
+  "gofundme-fundraiser-page": {
+    "source_id": "gofundme-fundraiser-page",
+    "url": "NOT_AVAILABLE",
+    "monitoring_enabled": true,
+    "polling_frequency": "daily",
+    "last_checked": "2026-09-07T22:16:09.337955+00:00",
+    "last_success": "2026-09-07T22:16:09.337955+00:00",
+    "last_change": "2026-09-07T22:15:24.674768+00:00",
+    "content_hash": "4fdf994181516cb72362c09c57fd274a0ccc665bee938a2e51f91285e2dc7077",
+    "parser_version": "1.0.0",
+    "status": "ok",
+    "error_count": 0
+  },
+  "gofundme-terms": {
+    "source_id": "gofundme-terms",
+    "url": "https://www.gofundme.com/c/terms",
+    "monitoring_enabled": true,
+    "polling_frequency": "weekly",
+    "last_checked": "2026-09-07T22:16:09.337955+00:00",
+    "last_success": "2026-09-07T22:16:09.337955+00:00",
+    "last_change": "2026-09-07T22:15:24.674768+00:00",
+    "content_hash": "4fdf994181516cb72362c09c57fd274a0ccc665bee938a2e51f91285e2dc7077",
+    "parser_version": "1.0.0",
+    "status": "ok",
+    "error_count": 0
+  }
+}

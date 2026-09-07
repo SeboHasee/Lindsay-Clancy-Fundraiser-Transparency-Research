@@ -1,0 +1,16 @@
+name: Report data error
+description: Report an incorrect value with evidence
+title: "[Data Error] "
+labels: ["data-correction"]
+body:
+  - type: textarea
+    id: claim
+    attributes:
+      label: What is incorrect?
+      description: Include affected record and evidence.
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Source URL and evidence

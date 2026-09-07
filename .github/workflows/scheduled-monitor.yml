@@ -1,0 +1,56 @@
+name: Scheduled Monitor
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - run: python -m research source check
+      - run: python -m research monitor
+      - run: python -m research validate
+      - run: python -m research analyze
+      - run: python -m research report
+      - run: python -m research export --public
+      - run: python -m research changelog
+      - name: Open review issue when queue has items
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const p = 'data/review/queue.json';
+            if (!fs.existsSync(p)) return;
+            const queue = JSON.parse(fs.readFileSync(p, 'utf8'));
+            const open = queue.filter(x => ['NEW','UNDER_REVIEW'].includes(x.status));
+            if (open.length === 0) return;
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Automated review queue alert (${open.length} items)`,
+              body: `Monitoring run detected review-required items. See data/review/queue.json.`,
+              labels: ['automation','review-required']
+            });
+      - name: Create PR for low-risk updates
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: 'chore: automated monitoring update'
+          title: 'Automated monitoring update'
+          body: |
+            Automated low-risk monitoring update.
+            - Sources checked via scheduled workflow
+            - Validation/analyze/report/export executed
+            - Review-required items remain in queue for human review
+          branch: automation/monitoring-update
+          delete-branch: true

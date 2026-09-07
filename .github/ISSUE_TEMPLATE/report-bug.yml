@@ -1,0 +1,11 @@
+name: Report bug
+description: Report platform bug
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: bug
+    attributes:
+      label: Bug details
+    validations:
+      required: true

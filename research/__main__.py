@@ -4,8 +4,15 @@ import argparse
 import json
 from pathlib import Path
 
+from src.analysis.changelog import append_changelog
+from src.analysis.coverage import write_coverage_report
+from src.analysis.reporting import generate_html_reports
 from src.analysis.statistics import summarize_donations
+from src.community_triage import classify_submission
 from src.database.migrations import initialize_database
+from src.monitoring.engine import run_monitoring_cycle
+from src.publication.filtering import apply_publication_filter
+from src.sources.registry import load_source_registry
 from src.validation.data_quality import validate_donation_records
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -18,19 +25,30 @@ def _require(path: Path, label: str) -> None:
         raise SystemExit(f"Missing prerequisite: {label} ({path})")
 
 
+def _load_json(path: Path, default):
+    if not path.exists():
+        return default
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _save_json(path: Path, payload) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+
 def cmd_source_check(_: argparse.Namespace) -> None:
     registry = DATA / "source_registry.json"
     _require(registry, "source registry")
-    records = json.loads(registry.read_text(encoding="utf-8"))
+    records = load_source_registry(registry)
     print(f"sources={len(records)} checked")
 
 
 def cmd_source_inventory(_: argparse.Namespace) -> None:
     registry = DATA / "source_registry.json"
     _require(registry, "source registry")
-    records = json.loads(registry.read_text(encoding="utf-8"))
+    records = load_source_registry(registry)
     for item in records:
-        print(f"{item['source_id']}	{item['source_type']}	{item['authorization_status']}")
+        print(f"{item.source_id}\t{item.source_type}\t{item.terms_status}\t{item.polling_frequency}")
 
 
 def cmd_import(args: argparse.Namespace) -> None:
@@ -41,15 +59,19 @@ def cmd_import(args: argparse.Namespace) -> None:
     print(f"imported {src} -> {dst}")
 
 
+def cmd_monitor(_: argparse.Namespace) -> None:
+    summary = run_monitoring_cycle(DATA, REPORTS)
+    print(json.dumps(summary, indent=2))
+
+
 def cmd_validate(_: argparse.Namespace) -> None:
     sample = DATA / "research" / "donations.json"
-    records = []
-    if sample.exists():
-        records = json.loads(sample.read_text(encoding="utf-8"))
+    records = _load_json(sample, [])
     issues = validate_donation_records(records)
     payload = {"status": "PASS" if not issues else "FAIL", "issues": issues}
     REPORTS.mkdir(parents=True, exist_ok=True)
     (REPORTS / "data_quality_report.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    (REPORTS / "data-quality-report.json").write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     print(payload["status"])
 
 
@@ -61,19 +83,31 @@ def cmd_verify(_: argparse.Namespace) -> None:
     print("Verification queue requires human review for identity claims.")
 
 
+def cmd_triage(_: argparse.Namespace) -> None:
+    submissions = _load_json(DATA / "review" / "community_submissions.json", [])
+    triaged = []
+    for entry in submissions:
+        tagged = dict(entry)
+        tagged["classification"] = classify_submission(entry)
+        tagged["status"] = tagged.get("status", "NEW")
+        triaged.append(tagged)
+    _save_json(DATA / "review" / "community_submissions_triaged.json", triaged)
+    print(f"triaged={len(triaged)}")
+
+
 def cmd_analyze(_: argparse.Namespace) -> None:
     sample = DATA / "research" / "donations.json"
-    records = []
-    if sample.exists():
-        records = json.loads(sample.read_text(encoding="utf-8"))
-    summarize_donations(records, REPORTS)
+    records = _load_json(sample, [])
+    source_count = len(_load_json(DATA / "source_registry.json", []))
+    summary = summarize_donations(records, REPORTS, source_count=source_count)
+    write_coverage_report(
+        REPORTS / "source_coverage.csv",
+        observed_count=summary["metrics"]["observed_record_count"],
+        reported_count=None,
+        observed_amount=float(summary["metrics"]["observed_sum"]),
+        reported_amount=None,
+    )
     print("analysis complete")
-
-
-def cmd_coverage(_: argparse.Namespace) -> None:
-    coverage = REPORTS / "source_coverage.csv"
-    _require(coverage, "source coverage report")
-    print(coverage.read_text(encoding="utf-8").strip())
 
 
 def cmd_report(_: argparse.Namespace) -> None:
@@ -84,13 +118,33 @@ def cmd_report(_: argparse.Namespace) -> None:
     ]
     for path in required:
         _require(path, path.name)
+    generate_html_reports(REPORTS)
     print("report artifacts present")
+
+
+def cmd_coverage(_: argparse.Namespace) -> None:
+    coverage = REPORTS / "source_coverage.csv"
+    _require(coverage, "source coverage report")
+    print(coverage.read_text(encoding="utf-8").strip())
 
 
 def cmd_export(args: argparse.Namespace) -> None:
     if not args.public:
         raise SystemExit("Use --public for publication export")
-    print("public export requested; run publication sanitizer before publishing")
+    records = _load_json(DATA / "research" / "donations.json", [])
+    filtered = apply_publication_filter(records, DATA / "schema" / "data_classification.json")
+    _save_json(DATA / "public" / "donations.public.json", filtered)
+    print(f"public records exported={len(filtered)}")
+
+
+def cmd_changelog(_: argparse.Namespace) -> None:
+    append_changelog(ROOT / "CHANGELOG.md", "v0.0.0", "v0.1.0", 0, 0, 0, 0)
+    print("changelog updated")
+
+
+def cmd_health(_: argparse.Namespace) -> None:
+    _require(REPORTS / "system-health.json", "system health")
+    print((REPORTS / "system-health.json").read_text(encoding="utf-8").strip())
 
 
 def cmd_audit(_: argparse.Namespace) -> None:
@@ -110,12 +164,16 @@ def build_parser() -> argparse.ArgumentParser:
     imp.add_argument("file")
     imp.set_defaults(func=cmd_import)
 
+    sub.add_parser("monitor").set_defaults(func=cmd_monitor)
     sub.add_parser("validate").set_defaults(func=cmd_validate)
     sub.add_parser("deduplicate").set_defaults(func=cmd_deduplicate)
     sub.add_parser("verify").set_defaults(func=cmd_verify)
+    sub.add_parser("triage").set_defaults(func=cmd_triage)
     sub.add_parser("analyze").set_defaults(func=cmd_analyze)
     sub.add_parser("coverage").set_defaults(func=cmd_coverage)
     sub.add_parser("report").set_defaults(func=cmd_report)
+    sub.add_parser("changelog").set_defaults(func=cmd_changelog)
+    sub.add_parser("health").set_defaults(func=cmd_health)
 
     exp = sub.add_parser("export")
     exp.add_argument("--public", action="store_true")

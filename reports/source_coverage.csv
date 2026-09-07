@@ -1,2 +1,2 @@
-platform_reported_count,observed_count,coverage_ratio,platform_reported_amount,observed_amount,amount_coverage_ratio,missing_periods,collection_limitations
-NOT_AVAILABLE,0,0,NOT_AVAILABLE,0,0,UNKNOWN,Partially observable dataset
+observed_count,reported_count,coverage_ratio,observed_amount,reported_amount,amount_coverage_ratio,missing_periods,known_limitations
+0,NOT_AVAILABLE,0.0,0.0,NOT_AVAILABLE,0.0,UNKNOWN,Partially observable dataset
