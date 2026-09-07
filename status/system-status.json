@@ -1,0 +1,7 @@
+{
+  "status": "healthy",
+  "automation_status": "CURRENT",
+  "last_successful_run": "2026-09-07T22:26:08.386064+00:00",
+  "expected_next_run": "2026-09-08T22:26:08.386064+00:00",
+  "dataset_version": "v0.1.0"
+}
