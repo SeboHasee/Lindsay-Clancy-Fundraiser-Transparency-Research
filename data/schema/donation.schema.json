@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DonationRecord",
+  "type": "object",
+  "required": [
+    "donation_id",
+    "source_id",
+    "source_url",
+    "displayed_amount",
+    "verification_status",
+    "confidence",
+    "collection_method",
+    "evidence_reference"
+  ],
+  "properties": {
+    "donation_id": {
+      "type": "string"
+    },
+    "source_id": {
+      "type": "string"
+    },
+    "source_url": {
+      "type": "string",
+      "minLength": 1
+    },
+    "displayed_donor_name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "displayed_amount": {
+      "type": "string"
+    },
+    "normalized_amount": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "currency": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "displayed_date": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "normalized_datetime": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "displayed_message": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "anonymous_indicator": {
+      "type": "boolean"
+    },
+    "organization_claim": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "public_figure_claim": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "verification_status": {
+      "type": "string",
+      "enum": [
+        "UNVERIFIED",
+        "PENDING",
+        "VERIFIED",
+        "REJECTED",
+        "UNKNOWN"
+      ]
+    },
+    "verification_source": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "confidence": {
+      "type": "string",
+      "enum": [
+        "LOW",
+        "MEDIUM",
+        "HIGH",
+        "UNKNOWN"
+      ]
+    },
+    "first_observed_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "last_observed_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "collection_method": {
+      "type": "string"
+    },
+    "evidence_reference": {
+      "type": "string"
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,34 @@
+[
+  {
+    "source_id": "gofundme-fundraiser-page",
+    "source_name": "GoFundMe fundraiser page",
+    "canonical_url": "NOT_AVAILABLE",
+    "source_type": "fundraiser",
+    "publisher": "GoFundMe",
+    "first_seen": "NOT_AVAILABLE",
+    "last_checked": "2026-09-07",
+    "access_method": "manual evidence capture",
+    "authorization_status": "review_required",
+    "terms_checked_at": "2026-09-07",
+    "collection_method": "manual",
+    "reliability": "A",
+    "limitations": "Terms and platform visibility may limit observable records.",
+    "notes": "No scraping circumvention permitted."
+  },
+  {
+    "source_id": "gofundme-terms",
+    "source_name": "GoFundMe Terms and Policy",
+    "canonical_url": "https://www.gofundme.com/c/terms",
+    "source_type": "official platform documentation",
+    "publisher": "GoFundMe",
+    "first_seen": "2026-09-07",
+    "last_checked": "2026-09-07",
+    "access_method": "public web",
+    "authorization_status": "public",
+    "terms_checked_at": "2026-09-07",
+    "collection_method": "manual review",
+    "reliability": "A",
+    "limitations": "Interpretation may require legal review.",
+    "notes": "Check for restrictions before automation."
+  }
+]

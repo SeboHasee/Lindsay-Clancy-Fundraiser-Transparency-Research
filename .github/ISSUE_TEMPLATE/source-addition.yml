@@ -1,0 +1,8 @@
+name: Source addition
+description: Propose a new source
+title: "[Source] "
+body:
+  - type: textarea
+    id: source
+    attributes:
+      label: Source details

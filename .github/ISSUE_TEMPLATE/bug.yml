@@ -1,0 +1,9 @@
+name: Bug report
+description: Report a system bug
+title: "[Bug] "
+body:
+  - type: textarea
+    id: provenance
+    attributes:
+      label: Provenance
+      description: Include evidence and source references.

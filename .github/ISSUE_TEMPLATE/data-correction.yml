@@ -1,0 +1,8 @@
+name: Data correction
+description: Request correction with provenance
+title: "[Data correction] "
+body:
+  - type: textarea
+    id: correction
+    attributes:
+      label: Correction detail
