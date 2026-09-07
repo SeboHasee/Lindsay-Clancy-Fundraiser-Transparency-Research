@@ -89,7 +89,9 @@ def test_normal_update_and_no_change_idempotent(monkeypatch, tmp_path: Path) -> 
     assert first["records_added"] == 1
     assert second["records_added"] == 0
     saved = json.loads((data / "research" / "donations.json").read_text(encoding="utf-8"))
+    observations = (data / "research" / "donation_observations.jsonl").read_text(encoding="utf-8").splitlines()
     assert len(saved) == 1
+    assert len(observations) == 1
 
 
 def test_source_unavailable_preserves_existing_data(monkeypatch, tmp_path: Path) -> None:

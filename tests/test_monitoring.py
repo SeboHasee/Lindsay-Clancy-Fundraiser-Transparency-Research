@@ -29,5 +29,6 @@ def test_monitoring_cycle_runs_with_fallback(tmp_path: Path) -> None:
     summary = run_monitoring_cycle(data, reports)
 
     assert summary["sources_checked"] == 1
+    assert summary["source_health"]["not_automated"] == 1
     assert (reports / "system-health.json").exists()
     assert (data / "events" / "events.jsonl").exists()

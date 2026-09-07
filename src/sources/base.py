@@ -45,6 +45,8 @@ class SourceResult:
     warnings: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
     observation: SourceObservation | None = None
+    source_state: str = "SOURCE_HEALTHY"
+    coverage: dict[str, Any] = field(default_factory=dict)
 
 
 class BaseSourceAdapter(ABC):
@@ -103,10 +105,24 @@ class BaseSourceAdapter(ABC):
         normalized = self.normalize(parsed)
         validation_errors = self.validate(normalized)
         obs = self.produce_evidence(parsed, self.metadata.canonical_url)
+        warnings: list[str] = []
+        source_state = "SOURCE_HEALTHY"
+        if isinstance(parsed, dict):
+            status = str(parsed.get("status", "")).upper()
+            if status in {"NO_MANUAL_FILE", "FALLBACK_REQUIRED"}:
+                source_state = "SOURCE_NOT_AUTOMATED"
+            elif status in {"PARSER_ERROR", "STRUCTURE_CHANGED"}:
+                source_state = "SOURCE_PARSER_ERROR"
+            elif status in {"EMPTY"}:
+                source_state = "SOURCE_EMPTY"
+            if parsed.get("message"):
+                warnings.append(str(parsed["message"]))
         return SourceResult(
             metadata=self.metadata,
             records=normalized,
-            warnings=[],
+            warnings=warnings,
             errors=validation_errors,
             observation=obs,
+            source_state=source_state,
+            coverage={"record_count": len(normalized)},
         )

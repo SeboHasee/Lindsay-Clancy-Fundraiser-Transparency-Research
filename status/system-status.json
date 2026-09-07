@@ -1,7 +1,16 @@
 {
-  "status": "healthy",
-  "automation_status": "CURRENT",
-  "last_successful_run": "2026-09-07T22:26:08.386064+00:00",
-  "expected_next_run": "2026-09-08T22:26:08.386064+00:00",
-  "dataset_version": "v0.1.0"
+  "status": "HEALTHY",
+  "automation_status": "HEALTHY",
+  "last_successful_run": "2026-09-07T22:39:26.534804+00:00",
+  "last_attempted_ingestion": "2026-09-07T22:39:26.536017+00:00",
+  "expected_next_run": "2026-09-08T22:39:26.534804+00:00",
+  "dataset_version": "v0.1.0",
+  "dataset_size": 0,
+  "historical_observation_count": 0,
+  "source_health": {
+    "total": 2,
+    "healthy": 0,
+    "degraded": 0,
+    "not_automated": 2
+  }
 }

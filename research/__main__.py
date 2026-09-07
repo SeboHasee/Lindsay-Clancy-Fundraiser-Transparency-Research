@@ -8,7 +8,7 @@ from src.analysis.changelog import append_changelog
 from src.analysis.coverage import write_coverage_report
 from src.analysis.reporting import generate_html_reports
 from src.analysis.statistics import summarize_donations
-from src.community_triage import classify_submission
+from src.community_workflow import process_submissions
 from src.database.migrations import initialize_database
 from src.monitoring.engine import compute_automation_status, run_monitoring_cycle
 from src.publication.filtering import apply_publication_filter
@@ -78,6 +78,9 @@ def cmd_setup(_: argparse.Namespace) -> None:
                 "stale_warning_hours": 36,
                 "stale_critical_hours": 72,
                 "scheduler_interval_hours": 24,
+                "zero_drop_min_previous": 100,
+                "near_zero_fraction": 0.05,
+                "coverage_drop_alert_ratio": 0.5,
             },
         )
     _require(DATA / "source_registry.json", "source registry")
@@ -105,14 +108,12 @@ def cmd_verify(_: argparse.Namespace) -> None:
 
 def cmd_triage(_: argparse.Namespace) -> None:
     submissions = _load_json(DATA / "review" / "community_submissions.json", [])
-    triaged = []
-    for entry in submissions:
-        tagged = dict(entry)
-        tagged["classification"] = classify_submission(entry)
-        tagged["status"] = tagged.get("status", "NEW")
-        triaged.append(tagged)
+    queue = _load_json(DATA / "review" / "queue.json", [])
+    triaged, review_items = process_submissions(submissions)
+    queue.extend(review_items)
+    _save_json(DATA / "review" / "queue.json", queue)
     _save_json(DATA / "review" / "community_submissions_triaged.json", triaged)
-    print(f"triaged={len(triaged)}")
+    print(f"triaged={len(triaged)} review_items_added={len(review_items)}")
 
 
 def cmd_analyze(_: argparse.Namespace) -> None:
@@ -149,7 +150,7 @@ def cmd_coverage(_: argparse.Namespace) -> None:
 
 
 def cmd_export(args: argparse.Namespace) -> None:
-    if not args.public:
+    if not args.public and not args.default_public:
         raise SystemExit("Use --public for publication export")
     records = _load_json(DATA / "research" / "donations.json", [])
     filtered = apply_publication_filter(records, DATA / "schema" / "data_classification.json")
@@ -175,11 +176,15 @@ def cmd_status(_: argparse.Namespace) -> None:
     live = _load_json(REPORTS / "live-data-status.json", {})
     status = compute_automation_status(live.get("last_successful_update"), cfg)
     payload = {
-        "status": status["status"],
+        "status": live.get("run_state", status["status"]),
         "automation_status": status["automation_status"],
         "last_successful_run": live.get("last_successful_update"),
+        "last_attempted_ingestion": live.get("last_attempted_update"),
         "expected_next_run": status["expected_next_run"],
         "dataset_version": live.get("dataset_version", "v0.1.0"),
+        "dataset_size": live.get("dataset_size", 0),
+        "historical_observation_count": live.get("historical_observation_count", 0),
+        "source_health": live.get("source_health", {}),
     }
     _save_json(STATUS / "system-status.json", payload)
     print(json.dumps(payload, indent=2))
@@ -217,6 +222,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     exp = sub.add_parser("export")
     exp.add_argument("--public", action="store_true")
+    exp.set_defaults(default_public=True)
     exp.set_defaults(func=cmd_export)
 
     sub.add_parser("audit").set_defaults(func=cmd_audit)

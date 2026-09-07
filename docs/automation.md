@@ -8,6 +8,16 @@
 - `scheduled-maintenance.yml`: weekly review-queue and stale automation issue maintenance.
 - `scheduled-integrity.yml`: weekly integrity/lint/type/test checks.
 
+## Operational states
+
+`status/system-status.json` exposes:
+- `HEALTHY`
+- `DEGRADED`
+- `STALE`
+- `FAILED`
+
+These states are derived from ingestion success, source health, and stale-run thresholds.
+
 ## Scheduler freshness and GitHub 60-day behavior
 
 Public repository scheduled workflows may be disabled after 60 days of inactivity.

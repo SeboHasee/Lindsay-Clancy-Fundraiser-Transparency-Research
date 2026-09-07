@@ -30,7 +30,15 @@ jobs:
           mkdir -p site
           cp -r reports/* site/
           cp status/system-status.json site/system-status.json
-          cp README.md site/index.md
+          cp reports/dashboard.html site/index.html
+      - name: Verify required artifacts
+        run: |
+          test -f site/index.html
+          test -f site/system-status.json
+          test -f site/fundraiser-overview.html
+          test -f site/donation-statistics.html
+          test -f site/coverage.html
+          test -f site/data-quality.html
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site

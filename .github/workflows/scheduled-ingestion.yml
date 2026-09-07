@@ -25,7 +25,9 @@ jobs:
       - run: pip install -r requirements.txt
       - run: python -m research setup
       - run: python -m research source check
-      - run: python -m research monitor
+      - name: Monitor with retry
+        run: |
+          python -m research monitor || (sleep 30 && python -m research monitor)
       - run: python -m research validate
       - run: python -m research analyze
       - run: python -m research status
@@ -55,6 +57,32 @@ jobs:
               } else {
                 await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: ['automation','stale'] });
               }
+            } else if (existing) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                state: 'closed'
+              });
+            }
+      - name: Create/update source failure issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const queuePath = 'data/review/queue.json';
+            if (!fs.existsSync(queuePath)) return;
+            const queue = JSON.parse(fs.readFileSync(queuePath, 'utf8'));
+            const failures = queue.filter(x => ['source_failure','parser_structure_change','coverage_drop'].includes(x.claim));
+            const title = '[Automation] Source/parser/coverage failure requires review';
+            const {data: issues} = await github.rest.issues.listForRepo({ owner: context.repo.owner, repo: context.repo.repo, state: 'open', per_page: 100 });
+            const existing = issues.find(i => i.title === title);
+            if (failures.length === 0) return;
+            const body = `Detected ${failures.length} failure-related review item(s). See data/review/queue.json.`;
+            if (existing) {
+              await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body });
+            } else {
+              await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: ['automation','source-failure'] });
             }
       - name: Create PR for data/report/status updates
         uses: peter-evans/create-pull-request@v6

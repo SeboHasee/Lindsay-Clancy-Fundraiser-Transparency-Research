@@ -19,5 +19,8 @@
 - `stale_warning_hours`
 - `stale_critical_hours`
 - `scheduler_interval_hours`
+- `zero_drop_min_previous`
+- `near_zero_fraction`
+- `coverage_drop_alert_ratio`
 
 No secret values are stored in repository files.

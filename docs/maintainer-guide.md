@@ -32,6 +32,7 @@
 - Stale scheduler: check `status/system-status.json` for `automation_status: STALE`
 - Source failures: inspect review queue and workflow logs
 - Parser changes: update adapter + tests
+- Coverage drops: review `COVERAGE_DROP_DETECTED` events and keep previous canonical data until reviewed
 
 ## Recovery
 - Follow `docs/disaster-recovery.md`

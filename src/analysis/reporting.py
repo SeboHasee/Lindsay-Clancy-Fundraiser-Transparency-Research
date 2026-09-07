@@ -36,11 +36,14 @@ def generate_html_reports(reports_dir: Path) -> None:
         "changelog.html": "<h1>Changelog</h1><p>See CHANGELOG.md</p>",
         "dashboard.html": (
             "<h1>Public Research Dashboard</h1>"
+            f"<p>SYSTEM STATUS: {system.get('status', 'UNKNOWN')}</p>"
             f"<p>AUTOMATION STATUS: {system.get('automation_status', 'UNKNOWN')}</p>"
             f"<p>Data pipeline: {system.get('data_pipeline', 'UNKNOWN')}</p>"
             f"<p>Last successful automation run: {system.get('last_successful_run', 'UNKNOWN')}</p>"
             f"<p>Expected next run: {system.get('expected_next_run', 'UNKNOWN')}</p>"
-            f"<p>Sources healthy/degraded: {system.get('sources_healthy', 'UNKNOWN')}/{system.get('sources_degraded', 'UNKNOWN')}</p>"
+            f"<p>Sources healthy/degraded/not automated: {system.get('sources_healthy', 'UNKNOWN')}/{system.get('sources_degraded', 'UNKNOWN')}/{system.get('sources_not_automated', 'UNKNOWN')}</p>"
+            f"<p>Dataset size: {system.get('dataset_size', 'UNKNOWN')}</p>"
+            f"<p>Historical observations: {system.get('historical_observation_count', 'UNKNOWN')}</p>"
             "<h2>Overview</h2><p>Current fundraiser and dataset status.</p>"
             "<h2>Donation Activity</h2><p>Observable donation statistics only.</p>"
             "<h2>Timeline</h2><p>Historical changes and public events.</p>"
@@ -66,3 +69,4 @@ def generate_html_reports(reports_dir: Path) -> None:
             ),
             encoding="utf-8",
         )
+    (reports_dir / "index.html").write_text((reports_dir / "dashboard.html").read_text(encoding="utf-8"), encoding="utf-8")
