@@ -21,6 +21,7 @@ A living, evidence-first public research platform for transparently documenting 
 ## Core command flow
 
 ```bash
+python -m research setup
 python -m research source check
 python -m research monitor
 python -m research validate
@@ -28,6 +29,7 @@ python -m research analyze
 python -m research report
 python -m research export --public
 python -m research health
+python -m research status
 python -m research audit
 ```
 
@@ -38,6 +40,7 @@ python -m research audit
 - Coverage status: reported in `reports/source_coverage.csv`
 - Last successful update: shown in `reports/live-data-status.json`
 - System health: `reports/system-health.json`
+- Automation freshness + website-facing status: `status/system-status.json`
 
 ## Key artifacts
 
@@ -62,3 +65,7 @@ All submissions are treated as **UNVERIFIED** until review.
 ## Transparency warning
 
 **Publicly observable data is not necessarily the complete donation ledger.**
+
+If automation becomes stale, the system should report:
+
+**AUTOMATION STATUS: STALE**

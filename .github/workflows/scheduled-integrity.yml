@@ -1,0 +1,26 @@
+name: Scheduled Integrity
+on:
+  schedule:
+    - cron: '30 13 * * 6'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: scheduled-integrity
+  cancel-in-progress: false
+jobs:
+  integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - run: pip install ruff mypy
+      - run: ruff check .
+      - run: mypy src research --ignore-missing-imports
+      - run: pytest -q
+      - run: python -m research setup
+      - run: python -m research validate
+      - run: python -m research health

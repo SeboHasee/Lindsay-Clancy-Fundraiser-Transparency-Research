@@ -1,0 +1,6 @@
+{
+  "timezone": "America/New_York",
+  "stale_warning_hours": 36,
+  "stale_critical_hours": 72,
+  "scheduler_interval_hours": 24
+}

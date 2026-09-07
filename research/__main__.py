@@ -10,7 +10,7 @@ from src.analysis.reporting import generate_html_reports
 from src.analysis.statistics import summarize_donations
 from src.community_triage import classify_submission
 from src.database.migrations import initialize_database
-from src.monitoring.engine import run_monitoring_cycle
+from src.monitoring.engine import compute_automation_status, run_monitoring_cycle
 from src.publication.filtering import apply_publication_filter
 from src.sources.registry import load_source_registry
 from src.validation.data_quality import validate_donation_records
@@ -18,6 +18,7 @@ from src.validation.data_quality import validate_donation_records
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 REPORTS = ROOT / "reports"
+STATUS = ROOT / "status"
 
 
 def _require(path: Path, label: str) -> None:
@@ -62,6 +63,25 @@ def cmd_import(args: argparse.Namespace) -> None:
 def cmd_monitor(_: argparse.Namespace) -> None:
     summary = run_monitoring_cycle(DATA, REPORTS)
     print(json.dumps(summary, indent=2))
+
+
+def cmd_setup(_: argparse.Namespace) -> None:
+    needed_dirs = [DATA / "raw", DATA / "research", DATA / "public", DATA / "review", DATA / "events", REPORTS, STATUS]
+    for item in needed_dirs:
+        item.mkdir(parents=True, exist_ok=True)
+    defaults = DATA / "research" / "automation_config.json"
+    if not defaults.exists():
+        _save_json(
+            defaults,
+            {
+                "timezone": "UTC",
+                "stale_warning_hours": 36,
+                "stale_critical_hours": 72,
+                "scheduler_interval_hours": 24,
+            },
+        )
+    _require(DATA / "source_registry.json", "source registry")
+    print("setup complete")
 
 
 def cmd_validate(_: argparse.Namespace) -> None:
@@ -147,6 +167,24 @@ def cmd_health(_: argparse.Namespace) -> None:
     print((REPORTS / "system-health.json").read_text(encoding="utf-8").strip())
 
 
+def cmd_status(_: argparse.Namespace) -> None:
+    cfg = _load_json(
+        DATA / "research" / "automation_config.json",
+        {"stale_warning_hours": 36, "stale_critical_hours": 72, "scheduler_interval_hours": 24},
+    )
+    live = _load_json(REPORTS / "live-data-status.json", {})
+    status = compute_automation_status(live.get("last_successful_update"), cfg)
+    payload = {
+        "status": status["status"],
+        "automation_status": status["automation_status"],
+        "last_successful_run": live.get("last_successful_update"),
+        "expected_next_run": status["expected_next_run"],
+        "dataset_version": live.get("dataset_version", "v0.1.0"),
+    }
+    _save_json(STATUS / "system-status.json", payload)
+    print(json.dumps(payload, indent=2))
+
+
 def cmd_audit(_: argparse.Namespace) -> None:
     print("Audit checklist: observed vs unavailable vs incomplete vs verified vs uncertain vs restrictions")
 
@@ -165,6 +203,7 @@ def build_parser() -> argparse.ArgumentParser:
     imp.set_defaults(func=cmd_import)
 
     sub.add_parser("monitor").set_defaults(func=cmd_monitor)
+    sub.add_parser("setup").set_defaults(func=cmd_setup)
     sub.add_parser("validate").set_defaults(func=cmd_validate)
     sub.add_parser("deduplicate").set_defaults(func=cmd_deduplicate)
     sub.add_parser("verify").set_defaults(func=cmd_verify)
@@ -174,6 +213,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("report").set_defaults(func=cmd_report)
     sub.add_parser("changelog").set_defaults(func=cmd_changelog)
     sub.add_parser("health").set_defaults(func=cmd_health)
+    sub.add_parser("status").set_defaults(func=cmd_status)
 
     exp = sub.add_parser("export")
     exp.add_argument("--public", action="store_true")

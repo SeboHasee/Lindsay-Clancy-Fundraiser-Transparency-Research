@@ -16,12 +16,18 @@ def generate_html_reports(reports_dir: Path) -> None:
     stats = _load_json(reports_dir / "statistical_summary.json", {})
     health = _load_json(reports_dir / "system-health.json", {})
     live = _load_json(reports_dir / "live-data-status.json", {})
+    system = _load_json(reports_dir.parent / "status" / "system-status.json", {})
     timestamp = datetime.now(UTC).isoformat()
     dataset_version = stats.get("dataset_version", "UNKNOWN")
     coverage = stats.get("coverage", "Partially observable dataset")
 
     pages = {
-        "fundraiser-overview.html": f"<h1>Fundraiser Overview</h1><p>Generated: {timestamp}</p><p>Dataset version: {dataset_version}</p><p>Coverage: {coverage}</p>",
+        "fundraiser-overview.html": (
+            f"<h1>Fundraiser Overview</h1><p>Generated: {timestamp}</p>"
+            f"<p>Dataset version: {dataset_version}</p><p>Coverage: {coverage}</p>"
+            f"<p>Automation status: {system.get('automation_status', 'UNKNOWN')}</p>"
+            f"<p>Last successful run: {system.get('last_successful_run', 'UNKNOWN')}</p>"
+        ),
         "donation-statistics.html": f"<h1>Donation Statistics</h1><pre>{json.dumps(stats.get('metrics', {}), indent=2)}</pre>",
         "donation-timeline.html": "<h1>Donation Timeline</h1><p>Timeline is based on observable records only.</p>",
         "coverage.html": f"<h1>Coverage</h1><pre>{json.dumps(live, indent=2)}</pre>",
@@ -30,6 +36,11 @@ def generate_html_reports(reports_dir: Path) -> None:
         "changelog.html": "<h1>Changelog</h1><p>See CHANGELOG.md</p>",
         "dashboard.html": (
             "<h1>Public Research Dashboard</h1>"
+            f"<p>AUTOMATION STATUS: {system.get('automation_status', 'UNKNOWN')}</p>"
+            f"<p>Data pipeline: {system.get('data_pipeline', 'UNKNOWN')}</p>"
+            f"<p>Last successful automation run: {system.get('last_successful_run', 'UNKNOWN')}</p>"
+            f"<p>Expected next run: {system.get('expected_next_run', 'UNKNOWN')}</p>"
+            f"<p>Sources healthy/degraded: {system.get('sources_healthy', 'UNKNOWN')}/{system.get('sources_degraded', 'UNKNOWN')}</p>"
             "<h2>Overview</h2><p>Current fundraiser and dataset status.</p>"
             "<h2>Donation Activity</h2><p>Observable donation statistics only.</p>"
             "<h2>Timeline</h2><p>Historical changes and public events.</p>"

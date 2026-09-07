@@ -5,16 +5,36 @@ on:
     branches: [main, master, copilot/**]
 permissions:
   contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
-  test:
+  checks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install -r requirements.txt
-      - run: pip install ruff mypy
-      - run: ruff check .
-      - run: mypy src research --ignore-missing-imports
-      - run: pytest -q
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Install tooling
+        run: pip install ruff mypy pip-audit
+      - name: Lint
+        run: ruff check .
+      - name: Typecheck
+        run: mypy src research --ignore-missing-imports
+      - name: Unit and integration tests
+        run: pytest -q
+      - name: Build and pipeline smoke
+        run: |
+          python -m compileall src research
+          python -m research setup
+          python -m research validate
+          python -m research analyze
+          python -m research report
+          python -m research status
+      - name: Security checks
+        run: |
+          pip-audit || true
+          ! rg -n "(api[_-]?key|token|secret|password)\s*[:=]\s*\S+" data reports src .github || (echo "possible secret-like content found" && exit 1)
