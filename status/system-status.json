@@ -1,9 +1,9 @@
 {
   "status": "HEALTHY",
   "automation_status": "HEALTHY",
-  "last_successful_run": "2026-09-07T22:39:26.534804+00:00",
-  "last_attempted_ingestion": "2026-09-07T22:39:26.536017+00:00",
-  "expected_next_run": "2026-09-08T22:39:26.534804+00:00",
+  "last_successful_run": "2026-09-07T22:43:53.310402+00:00",
+  "last_attempted_ingestion": "2026-09-07T22:43:53.311712+00:00",
+  "expected_next_run": "2026-09-08T22:43:53.310402+00:00",
   "dataset_version": "v0.1.0",
   "dataset_size": 0,
   "historical_observation_count": 0,
