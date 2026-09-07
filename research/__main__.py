@@ -7,6 +7,10 @@ from pathlib import Path
 from src.analysis.changelog import append_changelog
 from src.analysis.coverage import write_coverage_report
 from src.analysis.reporting import generate_html_reports
+from src.analysis.seo_validation import (
+    validate_github_pages_links,
+    validate_seo_outputs,
+)
 from src.analysis.statistics import summarize_donations
 from src.community_workflow import process_submissions
 from src.database.migrations import initialize_database
@@ -143,6 +147,19 @@ def cmd_report(_: argparse.Namespace) -> None:
     print("report artifacts present")
 
 
+def cmd_seo_validate(_: argparse.Namespace) -> None:
+    site_cfg = _load_json(
+        DATA / "research" / "site_config.json",
+        {"site_url": "https://sebohasee.github.io/Lindsay-Clancy-Fundraiser-Transparency-Research/"},
+    )
+    site_url = str(site_cfg.get("site_url")).rstrip("/") + "/"
+    issues = validate_seo_outputs(REPORTS, site_url)
+    issues.extend(validate_github_pages_links(REPORTS))
+    if issues:
+        raise SystemExit("SEO validation failed: " + ", ".join(issues))
+    print("seo validation passed")
+
+
 def cmd_coverage(_: argparse.Namespace) -> None:
     coverage = REPORTS / "source_coverage.csv"
     _require(coverage, "source coverage report")
@@ -216,6 +233,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("analyze").set_defaults(func=cmd_analyze)
     sub.add_parser("coverage").set_defaults(func=cmd_coverage)
     sub.add_parser("report").set_defaults(func=cmd_report)
+    sub.add_parser("seo-validate").set_defaults(func=cmd_seo_validate)
     sub.add_parser("changelog").set_defaults(func=cmd_changelog)
     sub.add_parser("health").set_defaults(func=cmd_health)
     sub.add_parser("status").set_defaults(func=cmd_status)

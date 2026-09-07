@@ -32,6 +32,7 @@ jobs:
       - run: python -m research analyze
       - run: python -m research status
       - run: python -m research report
+      - run: python -m research seo-validate
       - run: python -m research export --public
       - run: python -m research changelog
       - name: Create/update stale automation issue

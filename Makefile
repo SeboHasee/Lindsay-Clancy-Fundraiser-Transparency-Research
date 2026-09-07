@@ -1,4 +1,4 @@
-.PHONY: init setup monitor validate analyze report export health status test
+.PHONY: init setup monitor validate analyze report seo-validate export health status test
 
 init:
 	python -m research source check
@@ -17,6 +17,9 @@ analyze:
 
 report:
 	python -m research report
+
+seo-validate:
+	python -m research seo-validate
 
 export:
 	python -m research export --public

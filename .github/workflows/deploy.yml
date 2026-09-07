@@ -24,6 +24,7 @@ jobs:
       - run: python -m research analyze
       - run: python -m research status
       - run: python -m research report
+      - run: python -m research seo-validate
       - name: Build Pages site
         run: |
           rm -rf site
@@ -39,6 +40,9 @@ jobs:
           test -f site/donation-statistics.html
           test -f site/coverage.html
           test -f site/data-quality.html
+          test -f site/robots.txt
+          test -f site/sitemap.xml
+          test -f site/404.html
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site

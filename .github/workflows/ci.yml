@@ -32,8 +32,9 @@ jobs:
           python -m research setup
           python -m research validate
           python -m research analyze
-          python -m research report
           python -m research status
+          python -m research report
+          python -m research seo-validate
       - name: Security checks
         run: |
           pip-audit || true
