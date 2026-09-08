@@ -12,3 +12,10 @@
 - records removed: 0
 - sources changed: 0
 
+## v0.1.0 - 2026-09-08
+- previous version: v0.0.0
+- records added: 0
+- records modified: 0
+- records removed: 0
+- sources changed: 0
+
