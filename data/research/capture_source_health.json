@@ -3,7 +3,7 @@
     {
       "source": "archive",
       "last_success": null,
-      "last_attempt": "2026-09-08T15:27:35.005858+00:00",
+      "last_attempt": "2026-09-08T16:53:13.600333+00:00",
       "last_change": null,
       "record_count": 5,
       "aggregate_observations": 1,
@@ -14,7 +14,7 @@
     {
       "source": "authorized_capture",
       "last_success": null,
-      "last_attempt": "2026-09-08T15:27:35.005868+00:00",
+      "last_attempt": "2026-09-08T16:53:13.600342+00:00",
       "last_change": null,
       "record_count": 5,
       "aggregate_observations": 1,
@@ -25,7 +25,7 @@
     {
       "source": "public_reporting",
       "last_success": null,
-      "last_attempt": "2026-09-08T15:27:35.005872+00:00",
+      "last_attempt": "2026-09-08T16:53:13.600346+00:00",
       "last_change": null,
       "record_count": 5,
       "aggregate_observations": 1,
@@ -41,6 +41,11 @@
     "records_added": 0,
     "records_updated": 0,
     "aggregate_observations_added": 0,
-    "conflicts_detected": 0
+    "conflicts_detected": 0,
+    "coverage_ratio": 0.5,
+    "donor_level_share": 0.5,
+    "aggregate_only_share": 0.5,
+    "unresolved_conflict_count": 0,
+    "review_backlog_oldest_hours": 0.0
   }
 }
