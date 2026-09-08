@@ -248,7 +248,7 @@ def run_monitoring_cycle(data_dir: Path, reports_dir: Path) -> dict[str, Any]:
             source_records = [r for r in result.records if isinstance(r, dict)]
             source_schema = _schema_fingerprint(source_records)
             previous_schema = str(previous_source_state.get("schema_fingerprint", ""))
-            if previous_schema and source_schema != previous_schema:
+            if previous_schema and previous_schema != "EMPTY" and source_schema != previous_schema:
                 source.collection_status = "SOURCE_PARSER_ERROR"
                 sources_degraded += 1
                 events.append(

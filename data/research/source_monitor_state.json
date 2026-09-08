@@ -1,20 +1,20 @@
 {
   "gofundme-fundraiser-page": {
     "source_id": "gofundme-fundraiser-page",
-    "url": "NOT_AVAILABLE",
+    "url": "https://www.gofundme.com/f/support-for-lindsay-clancys-parents",
     "monitoring_enabled": true,
     "polling_frequency": "daily",
-    "last_checked": "2026-09-08T14:59:02.284528+00:00",
-    "last_success": "2026-09-08T14:59:02.284528+00:00",
-    "last_change": "2026-09-07T22:15:24.674768+00:00",
-    "content_hash": "4fdf994181516cb72362c09c57fd274a0ccc665bee938a2e51f91285e2dc7077",
-    "schema_fingerprint": "EMPTY",
-    "last_record_count": 0,
+    "last_checked": "2026-09-08T15:05:16.069979+00:00",
+    "last_success": "2026-09-08T15:05:16.069979+00:00",
+    "last_change": "2026-09-08T15:05:01.861751+00:00",
+    "content_hash": "c02238980bc6e0327764d19c19a4a01dde60cca35905b431278df69fb0972a64",
+    "schema_fingerprint": "anonymous_indicator|collection_method|collection_timestamp|confidence|currency|displayed_amount|displayed_date|displayed_donor_name|displayed_message|donation_id|evidence_reference|first_observed_at|last_observed_at|normalized_amount|normalized_datetime|notes|organization_claim|public_figure_claim|source_id|source_url|verification_source|verification_status",
+    "last_record_count": 4,
     "parser_version": "1.0.0",
-    "status": "SOURCE_NOT_AUTOMATED",
+    "status": "SOURCE_HEALTHY",
     "error_count": 0,
     "warnings": [
-      "Automated collection not configured; use researcher-provided export or manual evidence."
+      "Manually curated public fundraiser amount snapshots from cited online reporting and fundraiser URL."
     ]
   },
   "gofundme-terms": {
@@ -22,17 +22,17 @@
     "url": "https://www.gofundme.com/c/terms",
     "monitoring_enabled": true,
     "polling_frequency": "weekly",
-    "last_checked": "2026-09-08T14:59:02.284528+00:00",
-    "last_success": "2026-09-08T14:59:02.284528+00:00",
-    "last_change": "2026-09-07T22:15:24.674768+00:00",
-    "content_hash": "4fdf994181516cb72362c09c57fd274a0ccc665bee938a2e51f91285e2dc7077",
-    "schema_fingerprint": "EMPTY",
-    "last_record_count": 0,
+    "last_checked": "2026-09-08T15:05:16.069979+00:00",
+    "last_success": "2026-09-08T15:05:16.069979+00:00",
+    "last_change": "2026-09-08T15:05:01.861751+00:00",
+    "content_hash": "c02238980bc6e0327764d19c19a4a01dde60cca35905b431278df69fb0972a64",
+    "schema_fingerprint": "anonymous_indicator|collection_method|collection_timestamp|confidence|currency|displayed_amount|displayed_date|displayed_donor_name|displayed_message|donation_id|evidence_reference|first_observed_at|last_observed_at|normalized_amount|normalized_datetime|notes|organization_claim|public_figure_claim|source_id|source_url|verification_source|verification_status",
+    "last_record_count": 4,
     "parser_version": "1.0.0",
-    "status": "SOURCE_NOT_AUTOMATED",
+    "status": "SOURCE_HEALTHY",
     "error_count": 0,
     "warnings": [
-      "Automated collection not configured; use researcher-provided export or manual evidence."
+      "Manually curated public fundraiser amount snapshots from cited online reporting and fundraiser URL."
     ]
   }
 }

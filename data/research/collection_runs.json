@@ -222,5 +222,37 @@
     "coverage": "Partially observable dataset",
     "software_version": "0.1.0",
     "dataset_version": "v0.1.0"
+  },
+  {
+    "run_id": "a23a8a68-f45a-4b6a-9dff-a55bf952fc92",
+    "start_time": "2026-09-08T15:05:01.861751+00:00",
+    "end_time": "2026-09-08T15:05:01.862896+00:00",
+    "collector": "monitoring_engine",
+    "source": "*",
+    "records_seen": 0,
+    "records_added": 0,
+    "records_changed": 0,
+    "records_rejected": 0,
+    "errors": "",
+    "warnings": "",
+    "coverage": "Partially observable dataset",
+    "software_version": "0.1.0",
+    "dataset_version": "v0.1.0"
+  },
+  {
+    "run_id": "9c480ddd-0432-40a2-a8fe-1010b8b2ee63",
+    "start_time": "2026-09-08T15:05:16.069979+00:00",
+    "end_time": "2026-09-08T15:05:16.071400+00:00",
+    "collector": "monitoring_engine",
+    "source": "*",
+    "records_seen": 4,
+    "records_added": 4,
+    "records_changed": 0,
+    "records_rejected": 0,
+    "errors": "",
+    "warnings": "",
+    "coverage": "Partially observable dataset",
+    "software_version": "0.1.0",
+    "dataset_version": "v0.1.0"
   }
 ]
