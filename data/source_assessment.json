@@ -1,0 +1,22 @@
+[
+  {
+    "source_id": "gofundme-terms",
+    "url": "https://www.gofundme.com/c/terms",
+    "date_checked": "2026-09-07",
+    "applicable_restrictions": [
+      "No circumvention of platform access controls",
+      "Respect terms-governed access and redistribution limits"
+    ],
+    "permitted_access_methods": [
+      "Manual evidence capture",
+      "Researcher-provided exports",
+      "Authorized/public interfaces where explicitly allowed",
+      "Legitimate archival references"
+    ],
+    "data_use_limitations": [
+      "Redistribution must follow platform terms and legal constraints",
+      "If rights are uncertain, publish metadata/provenance/hashes and aggregates"
+    ],
+    "compliance_notes": "This repository does not implement scraping circumvention."
+  }
+]

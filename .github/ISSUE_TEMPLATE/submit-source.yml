@@ -1,0 +1,12 @@
+name: Submit source
+description: Submit a new potential source
+title: "[Source Submission] "
+labels: ["source"]
+body:
+  - type: textarea
+    id: source
+    attributes:
+      label: Source details
+      description: URL, publisher, why it is relevant, and terms/access notes.
+    validations:
+      required: true

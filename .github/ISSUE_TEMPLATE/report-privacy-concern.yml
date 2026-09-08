@@ -1,0 +1,12 @@
+name: Report privacy concern
+description: Report suspected privacy-risking content
+title: "[Privacy Concern] "
+labels: ["privacy"]
+body:
+  - type: textarea
+    id: concern
+    attributes:
+      label: Privacy concern
+      description: Include affected content and why it may violate policy.
+    validations:
+      required: true

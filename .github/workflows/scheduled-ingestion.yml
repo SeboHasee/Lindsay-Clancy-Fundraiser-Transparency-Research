@@ -1,0 +1,104 @@
+name: Scheduled Ingestion
+on:
+  schedule:
+    - cron: '15 11 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: scheduled-ingestion
+  cancel-in-progress: false
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    env:
+      AUTOMATION_TIMEZONE: America/New_York
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - run: python -m research setup
+      - run: python -m research source check
+      - name: Monitor with retry
+        run: |
+          python -m research monitor || (sleep 30 && python -m research monitor)
+      - run: python -m research validate
+      - run: python -m research analyze
+      - run: python -m research status
+      - run: python -m research report
+      - run: python -m research seo-validate
+      - run: python -m research export --public
+      - run: python -m research changelog
+      - name: Create/update stale automation issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const statusPath = 'status/system-status.json';
+            if (!fs.existsSync(statusPath)) return;
+            const status = JSON.parse(fs.readFileSync(statusPath, 'utf8'));
+            const title = '[Automation] Scheduled ingestion has become stale';
+            const {data: issues} = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+            const existing = issues.find(i => i.title === title);
+            if (status.automation_status === 'STALE') {
+              const body = `Automation is stale. Last successful run: ${status.last_successful_run || 'UNKNOWN'}\nExpected next run: ${status.expected_next_run || 'UNKNOWN'}`;
+              if (existing) {
+                await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body });
+              } else {
+                await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: ['automation','stale'] });
+              }
+            } else if (existing) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                state: 'closed'
+              });
+            }
+      - name: Create/update source failure issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const queuePath = 'data/review/queue.json';
+            if (!fs.existsSync(queuePath)) return;
+            const queue = JSON.parse(fs.readFileSync(queuePath, 'utf8'));
+            const failures = queue.filter(x => ['source_failure','parser_structure_change','coverage_drop'].includes(x.claim));
+            const title = '[Automation] Source/parser/coverage failure requires review';
+            const {data: issues} = await github.rest.issues.listForRepo({ owner: context.repo.owner, repo: context.repo.repo, state: 'open', per_page: 100 });
+            const existing = issues.find(i => i.title === title);
+            if (failures.length === 0) return;
+            const body = `Detected ${failures.length} failure-related review item(s). See data/review/queue.json.`;
+            if (existing) {
+              await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body });
+            } else {
+              await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: ['automation','source-failure'] });
+            }
+      - name: Create PR for data/report/status updates
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: 'data: automated ingestion update'
+          title: 'Automated ingestion update'
+          body: |
+            Automated scheduled ingestion run.
+            - Monitor/validate/analyze/report/export completed
+            - Review queue retained for non-low-risk items
+            - Check status/system-status.json for freshness and health
+          branch: automation/ingestion-update
+          delete-branch: true
+          add-paths: |
+            data/**
+            reports/**
+            status/**
+            CHANGELOG.md

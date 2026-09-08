@@ -1,0 +1,11 @@
+name: Report source change
+description: Report suspected source structure/content changes
+title: "[Source Change] "
+labels: ["source-change"]
+body:
+  - type: textarea
+    id: change
+    attributes:
+      label: Change observed
+    validations:
+      required: true

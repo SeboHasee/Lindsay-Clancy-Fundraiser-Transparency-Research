@@ -1,0 +1,8 @@
+name: Verification request
+description: Request review of an identity/organization claim
+title: "[Verification] "
+body:
+  - type: textarea
+    id: claim
+    attributes:
+      label: Claim and evidence

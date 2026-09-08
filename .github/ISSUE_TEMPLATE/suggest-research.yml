@@ -1,0 +1,11 @@
+name: Suggest research
+description: Suggest analysis or methodology improvements
+title: "[Research Suggestion] "
+labels: ["methodology"]
+body:
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggestion
+    validations:
+      required: true

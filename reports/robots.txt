@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://sebohasee.github.io/Lindsay-Clancy-Fundraiser-Transparency-Research/sitemap.xml

@@ -1,0 +1,26 @@
+{
+  "generation_timestamp": "2026-09-08T09:52:52.944571+00:00",
+  "dataset_version": "v0.1.0",
+  "methodology_version": "v0.1.0",
+  "coverage": "Partially observable dataset",
+  "source_count": 2,
+  "limitations": "Publicly observable data is not necessarily the complete donation ledger.",
+  "metrics": {
+    "observed_record_count": 0,
+    "anonymous_count": 0,
+    "displayed_name_count": 0,
+    "observed_sum": 0,
+    "mean": 0,
+    "median": 0,
+    "min": 0,
+    "max": 0,
+    "p25": 0,
+    "p50": 0,
+    "p75": 0,
+    "p90": 0,
+    "p95": 0,
+    "p99": 0,
+    "std_dev": 0,
+    "iqr": 0
+  }
+}

@@ -1,0 +1,12 @@
+name: Verify public entity
+description: Submit evidence for organization/public figure verification
+title: "[Verify Entity] "
+labels: ["verification"]
+body:
+  - type: textarea
+    id: claim
+    attributes:
+      label: Verification claim
+      description: Include authoritative evidence and source links.
+    validations:
+      required: true

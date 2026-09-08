@@ -1,0 +1,8 @@
+name: Methodology issue
+description: Report methodology or reproducibility issue
+title: "[Methodology] "
+body:
+  - type: textarea
+    id: method
+    attributes:
+      label: Methodology issue

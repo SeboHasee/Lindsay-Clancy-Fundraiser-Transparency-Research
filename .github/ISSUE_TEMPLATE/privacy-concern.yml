@@ -1,0 +1,8 @@
+name: Privacy concern
+description: Report potential privacy risk
+title: "[Privacy] "
+body:
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Concern

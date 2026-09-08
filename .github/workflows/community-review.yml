@@ -1,0 +1,32 @@
+name: Community Review
+on:
+  issues:
+    types: [opened, edited, reopened]
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - run: python -m research triage
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            if (context.eventName !== 'issues') return;
+            const issue = context.payload.issue;
+            const txt = `${issue.title}\n${issue.body || ''}`.toLowerCase();
+            if (txt.includes('anonymous donor') || txt.includes('identify anonymous')) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: 'This project does not support anonymous donor identification. Please provide transparency-focused, evidence-based, privacy-safe contributions.'
+              });
+            }
