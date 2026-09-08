@@ -16,6 +16,7 @@ This repository is a living, evidence-first public research platform for documen
 - Tracks coverage and uncertainty explicitly.
 - Routes community submissions into review workflows.
 - Applies privacy filters before public export.
+- Automatically ingests validated capture packs from `data/captures/` into `data/raw/gofundme_manual_export.json`.
 
 ## What first-time visitors should know
 
@@ -36,6 +37,8 @@ This repository is a living, evidence-first public research platform for documen
 
 ```bash
 python -m research setup
+python -m research capture --source authorized_capture --source-url <url> --capture-type mixed --html <path/to/page.html> --screenshot <path/to/page.png> --export-file <path/to/export.json>
+python -m research capture-ingest
 python -m research source check
 python -m research monitor
 python -m research validate
@@ -102,6 +105,24 @@ If automation becomes stale, the system should report:
 - `reports/robots.txt`
 - `reports/sitemap.xml`
 - Canonical URLs, Open Graph/Twitter metadata, and JSON-LD structured data are generated with report pages.
+
+## Capture-pack workflow (automated evidence ingestion)
+
+Capture packs are immutable evidence bundles dropped into `data/captures/<capture_id>/` containing:
+- `manifest.json` (required, schema validated),
+- optional `page.html`,
+- optional `screenshot-*.png/.jpg/.webp`,
+- optional `export.json`,
+- optional `metadata.json`.
+
+On ingestion, the system:
+1. validates manifest structure and artifact hashes,
+2. quarantines invalid packs to `data/review/capture_quarantine.json`,
+3. extracts structured observations (export → HTML → text-pattern fallback),
+4. updates canonical records in `data/raw/gofundme_manual_export.json`,
+5. appends aggregate fundraiser observations to `data/research/fundraiser_observations.json`,
+6. emits capture events to `data/events/capture_events.jsonl`,
+7. routes unresolved conflicts to `data/review/queue.json`.
 
 ## Reproducibility and contribution
 

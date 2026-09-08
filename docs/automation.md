@@ -5,6 +5,7 @@
 - `ci.yml`: lint, typecheck, tests, build smoke, security checks for PR/push.
 - `deploy.yml`: builds and deploys static reports/status to GitHub Pages.
 - `scheduled-ingestion.yml`: daily ingestion/validation/analysis/report/export/status and automated update PR.
+- `capture-pack-ingestion.yml`: event-driven ingestion when capture packs or ingestion logic changes.
 - `scheduled-maintenance.yml`: weekly review-queue and stale automation issue maintenance.
 - `scheduled-integrity.yml`: weekly integrity/lint/type/test checks.
 
@@ -35,3 +36,10 @@ Re-enable procedure:
 ## Concurrency
 
 Scheduled workflows use workflow-level `concurrency` to avoid simultaneous ingestion writers.
+
+## Capture-pack automation
+
+The ingestion engine reads `data/captures/**/manifest.json` and verifies each artifact hash before extraction.
+Invalid packs are quarantined in `data/review/capture_quarantine.json` and do not update canonical data.
+Validated observations are normalized into `data/raw/gofundme_manual_export.json`, aggregate history is appended to
+`data/research/fundraiser_observations.json`, and capture events are appended to `data/events/capture_events.jsonl`.

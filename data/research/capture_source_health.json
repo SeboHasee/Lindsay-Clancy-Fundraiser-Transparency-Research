@@ -1,0 +1,46 @@
+{
+  "sources": [
+    {
+      "source": "archive",
+      "last_success": null,
+      "last_attempt": "2026-09-08T15:27:35.005858+00:00",
+      "last_change": null,
+      "record_count": 5,
+      "aggregate_observations": 1,
+      "status": "STALE",
+      "failure_reason": "NO_CAPTURE_PACKS",
+      "parser_version": "capture-pack-v1"
+    },
+    {
+      "source": "authorized_capture",
+      "last_success": null,
+      "last_attempt": "2026-09-08T15:27:35.005868+00:00",
+      "last_change": null,
+      "record_count": 5,
+      "aggregate_observations": 1,
+      "status": "STALE",
+      "failure_reason": "NO_CAPTURE_PACKS",
+      "parser_version": "capture-pack-v1"
+    },
+    {
+      "source": "public_reporting",
+      "last_success": null,
+      "last_attempt": "2026-09-08T15:27:35.005872+00:00",
+      "last_change": null,
+      "record_count": 5,
+      "aggregate_observations": 1,
+      "status": "STALE",
+      "failure_reason": "NO_CAPTURE_PACKS",
+      "parser_version": "capture-pack-v1"
+    }
+  ],
+  "summary": {
+    "captures_seen": 1,
+    "captures_accepted": 0,
+    "captures_quarantined": 0,
+    "records_added": 0,
+    "records_updated": 0,
+    "aggregate_observations_added": 0,
+    "conflicts_detected": 0
+  }
+}

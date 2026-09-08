@@ -1,0 +1,28 @@
+{
+  "records": [
+    {
+      "donation_id": "fixture-authorized-0001",
+      "source_id": "gofundme-fundraiser-page",
+      "source_url": "https://www.gofundme.com/f/support-for-lindsay-clancys-parents",
+      "displayed_donor_name": "Public Sample Donor",
+      "displayed_amount": "$50",
+      "normalized_amount": 50,
+      "currency": "USD",
+      "displayed_date": "2026-09-08",
+      "normalized_datetime": "2026-09-08T15:20:00+00:00",
+      "displayed_message": "Stay strong.",
+      "anonymous_indicator": false,
+      "verification_status": "UNVERIFIED",
+      "confidence": "HIGH",
+      "collection_method": "structured_export",
+      "evidence_reference": "fixture-authorized-export"
+    },
+    {
+      "fundraiser_total": 1167727,
+      "fundraiser_goal": 3000000,
+      "displayed_donation_count": 34400,
+      "normalized_datetime": "2026-09-08T15:20:00+00:00",
+      "confidence": "MEDIUM"
+    }
+  ]
+}

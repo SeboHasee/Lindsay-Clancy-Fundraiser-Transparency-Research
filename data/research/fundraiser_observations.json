@@ -1,0 +1,18 @@
+[
+  {
+    "capture_id": "2026-09-08T15-26-29.148115+00-00-cbbb22ce",
+    "source": "authorized_capture",
+    "source_url": "https://www.gofundme.com/f/support-for-lindsay-clancys-parents",
+    "observed_at": "2026-09-08T15:20:00+00:00",
+    "captured_at": "2026-09-08T15:26:29.148115+00:00",
+    "fundraiser_total": 1167727.0,
+    "fundraiser_goal": 3000000.0,
+    "displayed_donation_count": 34400,
+    "currency": "USD",
+    "observation_state": "OBSERVED",
+    "extraction_method": "structured_export",
+    "confidence": "MEDIUM",
+    "evidence_reference": "2026-09-08T15-26-29.148115+00-00-cbbb22ce:export.json",
+    "observation_id": "918cf0af88aaf97f1d028e3ddd7458e99734fd1c5ecc8c3caf6c9d9a80caf02a"
+  }
+]

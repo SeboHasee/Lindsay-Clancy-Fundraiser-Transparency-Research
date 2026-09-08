@@ -1,0 +1,20 @@
+{
+  "capture_id": "2026-09-08T15-26-29.148115+00-00-cbbb22ce",
+  "source": "authorized_capture",
+  "source_url": "https://www.gofundme.com/f/support-for-lindsay-clancys-parents",
+  "captured_at": "2026-09-08T15:26:29.148115+00:00",
+  "collector_version": "capture-pack-v1",
+  "capture_type": "mixed",
+  "artifacts": [
+    {
+      "path": "export.json",
+      "sha256": "95e83dbdc7bb96eaceb4e1aefd2608bbc293f7653f1905f056d42781b332fff9",
+      "media_type": "application/json"
+    },
+    {
+      "path": "metadata.json",
+      "sha256": "19e1e5993b8e73f43fd6e907ba0deb945652e470072638d901e4a0d14deadcbd",
+      "media_type": "application/json"
+    }
+  ]
+}

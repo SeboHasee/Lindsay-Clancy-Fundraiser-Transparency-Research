@@ -4,17 +4,17 @@
     "url": "https://www.gofundme.com/f/support-for-lindsay-clancys-parents",
     "monitoring_enabled": true,
     "polling_frequency": "daily",
-    "last_checked": "2026-09-08T15:05:16.069979+00:00",
-    "last_success": "2026-09-08T15:05:16.069979+00:00",
-    "last_change": "2026-09-08T15:05:01.861751+00:00",
-    "content_hash": "c02238980bc6e0327764d19c19a4a01dde60cca35905b431278df69fb0972a64",
+    "last_checked": "2026-09-08T15:27:35.006587+00:00",
+    "last_success": "2026-09-08T15:27:35.006587+00:00",
+    "last_change": "2026-09-08T15:26:34.983152+00:00",
+    "content_hash": "22deca91cf3e866fb3a8ba9edad9188b758130d478aca2bd9ee0b0bfb00b396d",
     "schema_fingerprint": "anonymous_indicator|collection_method|collection_timestamp|confidence|currency|displayed_amount|displayed_date|displayed_donor_name|displayed_message|donation_id|evidence_reference|first_observed_at|last_observed_at|normalized_amount|normalized_datetime|notes|organization_claim|public_figure_claim|source_id|source_url|verification_source|verification_status",
-    "last_record_count": 4,
+    "last_record_count": 5,
     "parser_version": "1.0.0",
     "status": "SOURCE_HEALTHY",
     "error_count": 0,
     "warnings": [
-      "Manually curated public fundraiser amount snapshots from cited online reporting and fundraiser URL."
+      "Generated from validated capture packs. Do not edit manually."
     ]
   },
   "gofundme-terms": {
@@ -22,17 +22,17 @@
     "url": "https://www.gofundme.com/c/terms",
     "monitoring_enabled": true,
     "polling_frequency": "weekly",
-    "last_checked": "2026-09-08T15:05:16.069979+00:00",
-    "last_success": "2026-09-08T15:05:16.069979+00:00",
-    "last_change": "2026-09-08T15:05:01.861751+00:00",
-    "content_hash": "c02238980bc6e0327764d19c19a4a01dde60cca35905b431278df69fb0972a64",
+    "last_checked": "2026-09-08T15:27:35.006587+00:00",
+    "last_success": "2026-09-08T15:27:35.006587+00:00",
+    "last_change": "2026-09-08T15:26:34.983152+00:00",
+    "content_hash": "22deca91cf3e866fb3a8ba9edad9188b758130d478aca2bd9ee0b0bfb00b396d",
     "schema_fingerprint": "anonymous_indicator|collection_method|collection_timestamp|confidence|currency|displayed_amount|displayed_date|displayed_donor_name|displayed_message|donation_id|evidence_reference|first_observed_at|last_observed_at|normalized_amount|normalized_datetime|notes|organization_claim|public_figure_claim|source_id|source_url|verification_source|verification_status",
-    "last_record_count": 4,
+    "last_record_count": 5,
     "parser_version": "1.0.0",
     "status": "SOURCE_HEALTHY",
     "error_count": 0,
     "warnings": [
-      "Manually curated public fundraiser amount snapshots from cited online reporting and fundraiser URL."
+      "Generated from validated capture packs. Do not edit manually."
     ]
   }
 }

@@ -1,0 +1,69 @@
+name: Capture Pack Ingestion
+on:
+  push:
+    branches: [main, master, copilot/**]
+    paths:
+      - 'data/captures/**'
+      - 'src/sources/capture_ingestion.py'
+      - 'research/__main__.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: capture-pack-ingestion-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - run: python -m research setup
+      - run: python -m research capture-ingest
+      - run: python -m research monitor
+      - run: python -m research validate
+      - run: python -m research analyze
+      - run: python -m research status
+      - run: python -m research report
+      - run: python -m research seo-validate
+      - run: python -m research export --public
+      - run: python -m research changelog
+      - name: Create/update capture ingestion failure issue
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = '[Automation] Capture-pack ingestion failure';
+            const body = `Capture-pack ingestion failed.\nRun: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\nRef: ${context.ref}\nTriggered by: ${context.eventName}`;
+            const {data: issues} = await github.rest.issues.listForRepo({ owner: context.repo.owner, repo: context.repo.repo, state: 'open', per_page: 100 });
+            const existing = issues.find(i => i.title === title);
+            if (existing) {
+              await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body });
+            } else {
+              await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: ['automation','capture-ingestion'] });
+            }
+      - name: Create PR for capture-ingestion data updates
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: 'data: automated capture-pack ingestion update'
+          title: 'Automated capture-pack ingestion update'
+          body: |
+            Automated capture-pack ingestion run.
+            - Capture manifests validated
+            - Artifacts hashed and verified
+            - Extracted/normalized observations merged into canonical files
+            - Reports and public export regenerated
+          branch: automation/capture-pack-ingestion-update
+          delete-branch: true
+          add-paths: |
+            data/**
+            reports/**
+            status/**
+            CHANGELOG.md

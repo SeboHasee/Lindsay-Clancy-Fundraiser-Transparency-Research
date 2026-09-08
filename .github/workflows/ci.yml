@@ -30,6 +30,7 @@ jobs:
         run: |
           python -m compileall src research
           python -m research setup
+          python -m research capture-ingest
           python -m research validate
           python -m research analyze
           python -m research status
