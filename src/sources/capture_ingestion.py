@@ -410,9 +410,12 @@ def _extract_from_structured_payload(
     for idx, item in enumerate(candidate_records):
         if not isinstance(item, dict):
             continue
-        capture_metadata = item.get("capture_metadata") if isinstance(item.get("capture_metadata"), dict) else {}
-        observed_facts = item.get("observed_facts") if isinstance(item.get("observed_facts"), dict) else item
-        provenance = item.get("provenance") if isinstance(item.get("provenance"), dict) else {}
+        raw_capture_metadata = item.get("capture_metadata")
+        raw_observed_facts = item.get("observed_facts")
+        raw_provenance = item.get("provenance")
+        capture_metadata: dict[str, Any] = raw_capture_metadata if isinstance(raw_capture_metadata, dict) else {}
+        observed_facts: dict[str, Any] = raw_observed_facts if isinstance(raw_observed_facts, dict) else item
+        provenance: dict[str, Any] = raw_provenance if isinstance(raw_provenance, dict) else {}
         effective_manifest = dict(manifest)
         if capture_metadata:
             effective_manifest["captured_at"] = capture_metadata.get("captured_at", effective_manifest["captured_at"])
@@ -425,6 +428,7 @@ def _extract_from_structured_payload(
             )
             effective_manifest["source_url"] = capture_metadata.get("source_url", effective_manifest["source_url"])
 
+        effective_captured_at = _parse_iso(str(effective_manifest["captured_at"]))
         item_evidence_reference = str(provenance.get("evidence_reference") or evidence_reference)
         item_artifact_sha = provenance.get("artifact_sha256") or artifact_sha256
         item_extraction_method = str(provenance.get("extraction_method") or "structured_export")
@@ -834,11 +838,13 @@ def ingest_capture_packs(data_dir: Path) -> dict[str, Any]:
                     )
                 )
 
-        previous_totals = [
-            float(item.get("fundraiser_total"))
-            for item in aggregate_by_id.values()
-            if isinstance(item, dict) and isinstance(item.get("fundraiser_total"), (int, float))
-        ]
+        previous_totals: list[float] = []
+        for item in aggregate_by_id.values():
+            if not isinstance(item, dict):
+                continue
+            total_value = item.get("fundraiser_total")
+            if isinstance(total_value, (int, float)):
+                previous_totals.append(float(total_value))
         previous_max_total = max(previous_totals) if previous_totals else None
         near_zero_fraction = float(automation_config.get("near_zero_fraction", DEFAULT_NEAR_ZERO_FRACTION))
         zero_drop_min_previous = float(automation_config.get("zero_drop_min_previous", REGRESSION_MIN_PREVIOUS_TOTAL))
@@ -896,7 +902,10 @@ def ingest_capture_packs(data_dir: Path) -> dict[str, Any]:
                 aggregate_by_id[oid] = aggregate
                 aggregates_added += 1
                 if isinstance(current_total, (int, float)):
-                    previous_max_total = max(float(current_total), float(previous_max_total or current_total))
+                    if previous_max_total is None:
+                        previous_max_total = float(current_total)
+                    else:
+                        previous_max_total = max(float(current_total), previous_max_total)
                 normalized_observations.append(_to_intermediate_observation("aggregate", aggregate))
 
         processed_hashes[capture_id] = manifest_hash
@@ -1120,4 +1129,3 @@ def git_commit_capture_pack(repo_root: Path, capture_dir: Path, message: str) ->
     rel_dir = capture_dir.relative_to(repo_root)
     subprocess.run(["git", "add", str(rel_dir)], cwd=repo_root, check=True)
     subprocess.run(["git", "commit", "-m", message], cwd=repo_root, check=True)
-        effective_captured_at = _parse_iso(str(effective_manifest["captured_at"]))
