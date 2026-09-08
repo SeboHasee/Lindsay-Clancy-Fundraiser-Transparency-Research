@@ -24,6 +24,7 @@ jobs:
           python-version: '3.11'
       - run: pip install -r requirements.txt
       - run: python -m research setup
+      - run: python -m research capture-ingest
       - run: python -m research source check
       - name: Monitor with retry
         run: |

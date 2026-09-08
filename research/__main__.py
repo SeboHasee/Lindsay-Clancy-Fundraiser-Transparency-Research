@@ -16,6 +16,7 @@ from src.community_workflow import process_submissions
 from src.database.migrations import initialize_database
 from src.monitoring.engine import compute_automation_status, run_monitoring_cycle
 from src.publication.filtering import apply_publication_filter
+from src.sources import create_capture_pack, ingest_capture_packs
 from src.sources.registry import load_source_registry
 from src.validation.data_quality import validate_donation_records
 
@@ -65,8 +66,17 @@ def cmd_import(args: argparse.Namespace) -> None:
 
 
 def cmd_monitor(_: argparse.Namespace) -> None:
+    capture_summary = ingest_capture_packs(DATA)
     summary = run_monitoring_cycle(DATA, REPORTS)
-    print(json.dumps(summary, indent=2))
+    print(
+        json.dumps(
+            {
+                "capture_ingestion": capture_summary,
+                "monitoring": summary,
+            },
+            indent=2,
+        )
+    )
 
 
 def cmd_setup(_: argparse.Namespace) -> None:
@@ -175,6 +185,29 @@ def cmd_export(args: argparse.Namespace) -> None:
     print(f"public records exported={len(filtered)}")
 
 
+def cmd_capture_ingest(_: argparse.Namespace) -> None:
+    summary = ingest_capture_packs(DATA)
+    print(json.dumps(summary, indent=2))
+
+
+def cmd_capture(args: argparse.Namespace) -> None:
+    screenshots = [Path(item) for item in args.screenshot]
+    result = create_capture_pack(
+        data_dir=DATA,
+        source=args.source,
+        source_url=args.source_url,
+        capture_type=args.capture_type,
+        collector_version=args.collector_version,
+        html_path=Path(args.html) if args.html else None,
+        export_path=Path(args.export_file) if args.export_file else None,
+        screenshot_paths=screenshots,
+        metadata_path=Path(args.metadata) if args.metadata else None,
+        notes=args.notes,
+        captured_at=args.captured_at,
+    )
+    print(json.dumps(result, indent=2))
+
+
 def cmd_changelog(_: argparse.Namespace) -> None:
     append_changelog(ROOT / "CHANGELOG.md", "v0.0.0", "v0.1.0", 0, 0, 0, 0)
     print("changelog updated")
@@ -225,6 +258,7 @@ def build_parser() -> argparse.ArgumentParser:
     imp.set_defaults(func=cmd_import)
 
     sub.add_parser("monitor").set_defaults(func=cmd_monitor)
+    sub.add_parser("capture-ingest").set_defaults(func=cmd_capture_ingest)
     sub.add_parser("setup").set_defaults(func=cmd_setup)
     sub.add_parser("validate").set_defaults(func=cmd_validate)
     sub.add_parser("deduplicate").set_defaults(func=cmd_deduplicate)
@@ -242,6 +276,19 @@ def build_parser() -> argparse.ArgumentParser:
     exp.add_argument("--public", action="store_true")
     exp.set_defaults(default_public=True)
     exp.set_defaults(func=cmd_export)
+
+    capture = sub.add_parser("capture")
+    capture.add_argument("--source", required=True, choices=["authorized_capture", "public_reporting", "archive"])
+    capture.add_argument("--source-url", required=True)
+    capture.add_argument("--capture-type", required=True, choices=["html", "screenshot", "export", "archive", "mixed"])
+    capture.add_argument("--collector-version", default="capture-pack-v1")
+    capture.add_argument("--captured-at")
+    capture.add_argument("--html")
+    capture.add_argument("--export-file")
+    capture.add_argument("--metadata")
+    capture.add_argument("--screenshot", action="append", default=[])
+    capture.add_argument("--notes")
+    capture.set_defaults(func=cmd_capture)
 
     sub.add_parser("audit").set_defaults(func=cmd_audit)
     return parser

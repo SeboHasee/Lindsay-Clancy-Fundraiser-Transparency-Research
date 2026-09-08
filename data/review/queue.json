@@ -1,1 +1,28 @@
-[]
+[
+  {
+    "review_id": "72cc07b7-e1d2-4aa2-ada5-a8dfed677c84",
+    "source": "gofundme-fundraiser-page",
+    "claim": "parser_structure_change",
+    "evidence": "schema fingerprint changed",
+    "affected_record": "N/A",
+    "submitter": "system",
+    "risk_level": "HIGH_RISK",
+    "status": "NEW",
+    "reviewer": "UNASSIGNED",
+    "decision": "PENDING",
+    "decision_timestamp": "UNKNOWN"
+  },
+  {
+    "review_id": "958fe4f5-6910-4bf5-9cc9-37b723de8263",
+    "source": "gofundme-terms",
+    "claim": "parser_structure_change",
+    "evidence": "schema fingerprint changed",
+    "affected_record": "N/A",
+    "submitter": "system",
+    "risk_level": "HIGH_RISK",
+    "status": "NEW",
+    "reviewer": "UNASSIGNED",
+    "decision": "PENDING",
+    "decision_timestamp": "UNKNOWN"
+  }
+]

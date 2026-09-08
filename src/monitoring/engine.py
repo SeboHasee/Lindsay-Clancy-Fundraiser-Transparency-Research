@@ -106,6 +106,8 @@ def _ensure_paths(data_dir: Path, reports_dir: Path) -> dict[str, Path]:
         "live_status": reports_dir / "live-data-status.json",
         "system_status": status_dir / "system-status.json",
         "automation_config": data_dir / "research" / "automation_config.json",
+        "fundraiser_observations": data_dir / "research" / "fundraiser_observations.json",
+        "capture_source_health": data_dir / "research" / "capture_source_health.json",
     }
 
 
@@ -197,6 +199,7 @@ def run_monitoring_cycle(data_dir: Path, reports_dir: Path) -> dict[str, Any]:
     run_log = _load_json(paths["run_log"], [])
     previous_live_status = _load_json(paths["live_status"], {})
     automation_config = _read_automation_config(paths["automation_config"])
+    fundraiser_observations = _load_json(paths["fundraiser_observations"], [])
 
     now = datetime.now(UTC).isoformat()
     changed_sources = 0
@@ -248,7 +251,7 @@ def run_monitoring_cycle(data_dir: Path, reports_dir: Path) -> dict[str, Any]:
             source_records = [r for r in result.records if isinstance(r, dict)]
             source_schema = _schema_fingerprint(source_records)
             previous_schema = str(previous_source_state.get("schema_fingerprint", ""))
-            if previous_schema and source_schema != previous_schema:
+            if previous_schema and previous_schema != "EMPTY" and source_schema != previous_schema:
                 source.collection_status = "SOURCE_PARSER_ERROR"
                 sources_degraded += 1
                 events.append(
@@ -432,6 +435,32 @@ def run_monitoring_cycle(data_dir: Path, reports_dir: Path) -> dict[str, Any]:
     )
     write_source_registry(paths["registry"], sources)
 
+    unresolved_conflicts = len(
+        [
+            item
+            for item in review_queue
+            if str(item.get("claim", "")).lower() == "conflict_detected"
+            and str(item.get("status", "")).upper() in {"NEW", "UNDER_REVIEW", "PENDING_REVIEW"}
+        ]
+    )
+    donor_level_records = len([record for record in canonical_donations if record.get("displayed_donor_name")])
+    aggregate_observation_count = len(fundraiser_observations) if isinstance(fundraiser_observations, list) else 0
+
+    all_timestamps: list[str] = []
+    for record in canonical_donations:
+        token = str(record.get("collection_timestamp", "")).strip()
+        if token:
+            all_timestamps.append(token)
+    if isinstance(fundraiser_observations, list):
+        for observation in fundraiser_observations:
+            token = str(observation.get("observed_at", "")).strip()
+            if token:
+                all_timestamps.append(token)
+    oldest_observation = min(all_timestamps) if all_timestamps else None
+    newest_observation = max(all_timestamps) if all_timestamps else None
+    denominator = donor_level_records + aggregate_observation_count
+    coverage_ratio = round(donor_level_records / denominator, 6) if denominator else 0.0
+
     run_failed = sources_checked == 0 or (sources_degraded > 0 and sources_healthy == 0 and sources_not_automated == 0)
     last_successful_update = previous_live_status.get("last_successful_update") if run_failed else now
 
@@ -452,6 +481,22 @@ def run_monitoring_cycle(data_dir: Path, reports_dir: Path) -> dict[str, Any]:
             "healthy": sources_healthy,
             "degraded": sources_degraded,
             "not_automated": sources_not_automated,
+        },
+        "completeness": {
+            "coverage_ratio": coverage_ratio,
+            "donor_level_records": donor_level_records,
+            "aggregate_observations": aggregate_observation_count,
+            "historical_observations": len(existing_observation_sigs),
+            "source_count": sources_checked,
+            "source_health": {
+                "healthy": sources_healthy,
+                "degraded": sources_degraded,
+                "not_automated": sources_not_automated,
+            },
+            "unresolved_conflicts": unresolved_conflicts,
+            "review_queue_size": len(review_queue),
+            "oldest_observation": oldest_observation,
+            "newest_observation": newest_observation,
         },
         "timezone": automation_config["timezone"],
         "run_state": "FAILED" if run_failed else ("DEGRADED" if sources_degraded else "HEALTHY"),
@@ -494,6 +539,13 @@ def run_monitoring_cycle(data_dir: Path, reports_dir: Path) -> dict[str, Any]:
         "sources_healthy": live_status["source_health"]["healthy"],
         "sources_degraded": live_status["source_health"]["degraded"],
         "sources_not_automated": live_status["source_health"]["not_automated"],
+        "coverage_ratio": coverage_ratio,
+        "donor_level_records": donor_level_records,
+        "aggregate_observations": aggregate_observation_count,
+        "unresolved_conflicts": unresolved_conflicts,
+        "review_queue_size": len(review_queue),
+        "oldest_observation": oldest_observation,
+        "newest_observation": newest_observation,
         "data_pipeline": "FAILED" if run_failed else ("DEGRADED" if sources_degraded else "HEALTHY"),
         "website": "ONLINE",
         "message": automation["message"],

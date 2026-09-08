@@ -100,7 +100,33 @@
         "LOW",
         "MEDIUM",
         "HIGH",
+        "UNRESOLVED",
         "UNKNOWN"
+      ]
+    },
+    "source_reliability": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "A",
+        "B",
+        "C",
+        "D",
+        null
+      ]
+    },
+    "capture_metadata": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "provenance": {
+      "type": [
+        "object",
+        "null"
       ]
     },
     "first_observed_at": {

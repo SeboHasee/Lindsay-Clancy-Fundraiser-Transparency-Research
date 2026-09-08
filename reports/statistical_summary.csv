@@ -1,2 +1,2 @@
 observed_record_count,anonymous_count,displayed_name_count,observed_sum,mean,median,min,max,p25,p50,p75,p90,p95,p99,std_dev,iqr
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+5,4,1,3587885.0,717577.0,817639.0,50.0,1167727.0,600000.0,817639.0,1002469.0,1101623.8,1134675.4,1161116.68,405581.12004036875,402469.0
