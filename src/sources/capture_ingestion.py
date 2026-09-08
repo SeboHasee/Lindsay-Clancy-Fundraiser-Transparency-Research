@@ -5,7 +5,7 @@ import json
 import re
 import shutil
 import subprocess
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -17,6 +17,9 @@ CONFIDENCE_RANK = {"UNRESOLVED": 0, "LOW": 1, "MEDIUM": 2, "HIGH": 3}
 HTML_MEDIA_TYPES = {"text/html", "application/xhtml+xml"}
 JSON_MEDIA_TYPES = {"application/json"}
 IMAGE_MEDIA_TYPES = {"image/png", "image/jpeg", "image/webp"}
+SOURCE_RELIABILITY = {"authorized_capture": "A", "public_reporting": "B", "archive": "C"}
+REGRESSION_MIN_PREVIOUS_TOTAL = 100.0
+DEFAULT_NEAR_ZERO_FRACTION = 0.05
 
 
 def _load_json(path: Path, default: Any) -> Any:
@@ -53,6 +56,16 @@ def _parse_iso(value: str | None) -> str:
     normalized = f"{value[:-1]}+00:00" if value.endswith("Z") else value
     dt = datetime.fromisoformat(normalized)
     return dt.astimezone(UTC).isoformat()
+
+
+def _parse_iso_datetime(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    normalized = f"{value[:-1]}+00:00" if value.endswith("Z") else value
+    try:
+        return datetime.fromisoformat(normalized).astimezone(UTC)
+    except ValueError:
+        return None
 
 
 def _money_to_float(value: str | float | None) -> float | None:
@@ -101,6 +114,47 @@ def _determine_confidence(source: str, method: str) -> str:
     return "UNRESOLVED"
 
 
+def _artifact_hash_index(artifacts: list[dict[str, Any]]) -> dict[str, str]:
+    index: dict[str, str] = {}
+    for artifact in artifacts:
+        rel = str(artifact.get("path", "")).strip()
+        if not rel:
+            continue
+        index[rel] = str(artifact.get("sha256", "")).lower()
+    return index
+
+
+def _build_capture_metadata(manifest: dict[str, Any], evidence_reference: str, artifact_sha256: str | None) -> dict[str, Any]:
+    return {
+        "capture_id": str(manifest["capture_id"]),
+        "source": str(manifest["source"]),
+        "source_url": str(manifest["source_url"]),
+        "captured_at": _parse_iso(str(manifest["captured_at"])),
+        "collector_version": str(manifest["collector_version"]),
+        "capture_type": str(manifest["capture_type"]),
+        "source_reliability": str(manifest.get("source_reliability") or SOURCE_RELIABILITY.get(str(manifest["source"]), "UNKNOWN")),
+        "evidence_reference": evidence_reference,
+        "artifact_sha256": artifact_sha256,
+    }
+
+
+def _build_provenance_payload(
+    *,
+    evidence_reference: str,
+    artifact_sha256: str | None,
+    extraction_method: str,
+    confidence: str,
+    hash_verified: bool,
+) -> dict[str, Any]:
+    return {
+        "evidence_reference": evidence_reference,
+        "artifact_sha256": artifact_sha256,
+        "extraction_method": extraction_method,
+        "parser_confidence": confidence,
+        "hash_verified": hash_verified,
+    }
+
+
 def _manifest_event(capture_id: str, event_type: str, details: dict[str, Any]) -> dict[str, Any]:
     return {
         "event_id": str(uuid4()),
@@ -127,6 +181,9 @@ def validate_capture_manifest(payload: dict[str, Any]) -> list[str]:
     source_url = str(payload.get("source_url", ""))
     if not source_url.startswith(("http://", "https://")):
         errors.append("source_url must be http(s)")
+    source_reliability = payload.get("source_reliability")
+    if source_reliability is not None and str(source_reliability) not in {"A", "B", "C", "D"}:
+        errors.append("source_reliability must be one of A|B|C|D")
 
     try:
         _parse_iso(str(payload.get("captured_at", "")))
@@ -183,6 +240,8 @@ def _normalize_donation_record(
     source_url: str,
     captured_at: str,
     evidence_reference: str,
+    artifact_sha256: str | None,
+    hash_verified: bool,
     extraction_method: str,
     default_index: int,
 ) -> dict[str, Any] | None:
@@ -230,6 +289,29 @@ def _normalize_donation_record(
             "collection_method": record.get("collection_method") or extraction_method,
             "collection_timestamp": record.get("collection_timestamp") or captured_at,
             "evidence_reference": record.get("evidence_reference") or evidence_reference,
+            "source_reliability": record.get("source_reliability")
+            or SOURCE_RELIABILITY.get(source, "UNKNOWN"),
+            "capture_metadata": _build_capture_metadata(
+                {
+                    "capture_id": capture_id,
+                    "source": source,
+                    "source_url": source_url,
+                    "captured_at": captured_at,
+                    "collector_version": record.get("collector_version") or "capture-pack-v1",
+                    "capture_type": record.get("capture_type") or "mixed",
+                    "source_reliability": record.get("source_reliability")
+                    or SOURCE_RELIABILITY.get(source, "UNKNOWN"),
+                },
+                evidence_reference,
+                artifact_sha256,
+            ),
+            "provenance": _build_provenance_payload(
+                evidence_reference=record.get("evidence_reference") or evidence_reference,
+                artifact_sha256=artifact_sha256,
+                extraction_method=record.get("collection_method") or extraction_method,
+                confidence=confidence,
+                hash_verified=hash_verified,
+            ),
             "notes": record.get("notes"),
         }
     )
@@ -244,6 +326,8 @@ def _normalize_aggregate_observation(
     source_url: str,
     captured_at: str,
     evidence_reference: str,
+    artifact_sha256: str | None,
+    hash_verified: bool,
     extraction_method: str,
 ) -> dict[str, Any] | None:
     total = _money_to_float(record.get("fundraiser_total") or record.get("total_raised") or record.get("amount_raised"))
@@ -275,6 +359,29 @@ def _normalize_aggregate_observation(
         "extraction_method": extraction_method,
         "confidence": confidence,
         "evidence_reference": record.get("evidence_reference") or evidence_reference,
+        "source_reliability": record.get("source_reliability")
+        or SOURCE_RELIABILITY.get(source, "UNKNOWN"),
+        "capture_metadata": _build_capture_metadata(
+            {
+                "capture_id": capture_id,
+                "source": source,
+                "source_url": source_url,
+                "captured_at": captured_at,
+                "collector_version": record.get("collector_version") or "capture-pack-v1",
+                "capture_type": record.get("capture_type") or "mixed",
+                "source_reliability": record.get("source_reliability")
+                or SOURCE_RELIABILITY.get(source, "UNKNOWN"),
+            },
+            evidence_reference,
+            artifact_sha256,
+        ),
+        "provenance": _build_provenance_payload(
+            evidence_reference=record.get("evidence_reference") or evidence_reference,
+            artifact_sha256=artifact_sha256,
+            extraction_method=extraction_method,
+            confidence=confidence,
+            hash_verified=hash_verified,
+        ),
     }
     payload["observation_id"] = hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
     return payload
@@ -285,37 +392,73 @@ def _extract_from_structured_payload(
     *,
     manifest: dict[str, Any],
     evidence_reference: str,
+    artifact_sha256: str | None,
+    hash_verified: bool,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     records_out: list[dict[str, Any]] = []
     aggregates_out: list[dict[str, Any]] = []
     records = payload.get("records")
-    if not isinstance(records, list):
-        records = [payload]
+    if isinstance(records, list):
+        candidate_records = records
+    elif isinstance(payload.get("observations"), list):
+        candidate_records = payload["observations"]
+    elif isinstance(payload.get("observed_facts"), dict):
+        candidate_records = [payload]
+    else:
+        candidate_records = [payload]
 
-    captured_at = _parse_iso(str(manifest["captured_at"]))
-    for idx, item in enumerate(records):
+    for idx, item in enumerate(candidate_records):
         if not isinstance(item, dict):
             continue
+        capture_metadata = item.get("capture_metadata") if isinstance(item.get("capture_metadata"), dict) else {}
+        observed_facts = item.get("observed_facts") if isinstance(item.get("observed_facts"), dict) else item
+        provenance = item.get("provenance") if isinstance(item.get("provenance"), dict) else {}
+        effective_manifest = dict(manifest)
+        if capture_metadata:
+            effective_manifest["captured_at"] = capture_metadata.get("captured_at", effective_manifest["captured_at"])
+            effective_manifest["collector_version"] = capture_metadata.get(
+                "collector_version", effective_manifest["collector_version"]
+            )
+            effective_manifest["capture_type"] = capture_metadata.get("capture_type", effective_manifest["capture_type"])
+            effective_manifest["source_reliability"] = capture_metadata.get(
+                "source_reliability", effective_manifest.get("source_reliability")
+            )
+            effective_manifest["source_url"] = capture_metadata.get("source_url", effective_manifest["source_url"])
+
+        item_evidence_reference = str(provenance.get("evidence_reference") or evidence_reference)
+        item_artifact_sha = provenance.get("artifact_sha256") or artifact_sha256
+        item_extraction_method = str(provenance.get("extraction_method") or "structured_export")
+        item_hash_verified = bool(provenance.get("hash_verified", hash_verified))
+        record_payload = dict(observed_facts)
+        if provenance:
+            record_payload.setdefault("confidence", provenance.get("parser_confidence"))
+            record_payload.setdefault("source_reliability", effective_manifest.get("source_reliability"))
+            record_payload.setdefault("evidence_reference", provenance.get("evidence_reference"))
+
         donation_record = _normalize_donation_record(
-            item,
-            capture_id=str(manifest["capture_id"]),
-            source=str(manifest["source"]),
-            source_url=str(manifest["source_url"]),
-            captured_at=captured_at,
-            evidence_reference=evidence_reference,
-            extraction_method="structured_export",
+            record_payload,
+            capture_id=str(effective_manifest["capture_id"]),
+            source=str(effective_manifest["source"]),
+            source_url=str(effective_manifest["source_url"]),
+            captured_at=effective_captured_at,
+            evidence_reference=item_evidence_reference,
+            artifact_sha256=item_artifact_sha,
+            hash_verified=item_hash_verified,
+            extraction_method=item_extraction_method,
             default_index=idx,
         )
         if donation_record:
             records_out.append(donation_record)
         aggregate_record = _normalize_aggregate_observation(
-            item,
-            capture_id=str(manifest["capture_id"]),
-            source=str(manifest["source"]),
-            source_url=str(manifest["source_url"]),
-            captured_at=captured_at,
-            evidence_reference=evidence_reference,
-            extraction_method="structured_export",
+            record_payload,
+            capture_id=str(effective_manifest["capture_id"]),
+            source=str(effective_manifest["source"]),
+            source_url=str(effective_manifest["source_url"]),
+            captured_at=effective_captured_at,
+            evidence_reference=item_evidence_reference,
+            artifact_sha256=item_artifact_sha,
+            hash_verified=item_hash_verified,
+            extraction_method=item_extraction_method,
         )
         if aggregate_record:
             aggregates_out.append(aggregate_record)
@@ -327,6 +470,8 @@ def _extract_from_html_text(
     *,
     manifest: dict[str, Any],
     evidence_reference: str,
+    artifact_sha256: str | None,
+    hash_verified: bool,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     text = " ".join(re.sub(r"<[^>]+>", " ", html_text).split())
     aggregates: list[dict[str, Any]] = []
@@ -348,6 +493,8 @@ def _extract_from_html_text(
         source_url=str(manifest["source_url"]),
         captured_at=_parse_iso(str(manifest["captured_at"])),
         evidence_reference=evidence_reference,
+        artifact_sha256=artifact_sha256,
+        hash_verified=hash_verified,
         extraction_method="known_html" if any(aggregate_hint.values()) else "pattern_text",
     )
     if aggregate:
@@ -359,24 +506,38 @@ def _extract_for_artifact(
     pack_dir: Path,
     artifact: dict[str, Any],
     manifest: dict[str, Any],
+    artifact_hashes: dict[str, str],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     rel_path = str(artifact["path"])
     media_type = str(artifact["media_type"])
     artifact_path = pack_dir / rel_path
     evidence_reference = f"{manifest['capture_id']}:{rel_path}"
+    artifact_sha256 = artifact_hashes.get(rel_path)
     events: list[dict[str, Any]] = []
 
     if media_type in JSON_MEDIA_TYPES or artifact_path.suffix.lower() == ".json":
         payload = _load_json(artifact_path, {})
         if isinstance(payload, dict):
-            records, aggregates = _extract_from_structured_payload(payload, manifest=manifest, evidence_reference=evidence_reference)
+            records, aggregates = _extract_from_structured_payload(
+                payload,
+                manifest=manifest,
+                evidence_reference=evidence_reference,
+                artifact_sha256=artifact_sha256,
+                hash_verified=True,
+            )
             return records, aggregates, events
         events.append(_manifest_event(str(manifest["capture_id"]), "CAPTURE_PARSE_WARNING", {"artifact": rel_path, "reason": "json payload is not object"}))
         return [], [], events
 
     if media_type in HTML_MEDIA_TYPES or artifact_path.suffix.lower() in {".html", ".htm"}:
         html_text = artifact_path.read_text(encoding="utf-8", errors="ignore")
-        records, aggregates = _extract_from_html_text(html_text, manifest=manifest, evidence_reference=evidence_reference)
+        records, aggregates = _extract_from_html_text(
+            html_text,
+            manifest=manifest,
+            evidence_reference=evidence_reference,
+            artifact_sha256=artifact_sha256,
+            hash_verified=True,
+        )
         return records, aggregates, events
 
     if media_type in IMAGE_MEDIA_TYPES:
@@ -406,6 +567,61 @@ def _review_item(source_id: str, claim: str, evidence: str, risk_level: str = "M
     }
 
 
+def _collect_record_quality_issues(record: dict[str, Any], now: datetime) -> list[str]:
+    issues: list[str] = []
+    amount = record.get("normalized_amount")
+    if isinstance(amount, (int, float)) and float(amount) < 0:
+        issues.append("negative_amount")
+    observed = _parse_iso_datetime(str(record.get("normalized_datetime") or record.get("collection_timestamp") or ""))
+    if observed and observed > now + timedelta(minutes=1):
+        issues.append("future_timestamp")
+    return issues
+
+
+def _collect_aggregate_quality_issues(observation: dict[str, Any], now: datetime) -> list[str]:
+    issues: list[str] = []
+    for field in ("fundraiser_total", "fundraiser_goal", "displayed_donation_count"):
+        value = observation.get(field)
+        if isinstance(value, (int, float)) and float(value) < 0:
+            issues.append(f"negative_{field}")
+    observed = _parse_iso_datetime(str(observation.get("observed_at") or ""))
+    if observed and observed > now + timedelta(minutes=1):
+        issues.append("future_observed_at")
+    return issues
+
+
+def _to_intermediate_observation(kind: str, payload: dict[str, Any]) -> dict[str, Any]:
+    capture_metadata = payload.get("capture_metadata") if isinstance(payload.get("capture_metadata"), dict) else {}
+    provenance = payload.get("provenance") if isinstance(payload.get("provenance"), dict) else {}
+    observed_facts: dict[str, Any]
+    if kind == "donation":
+        observed_facts = {
+            "donation_id": payload.get("donation_id"),
+            "displayed_amount": payload.get("displayed_amount"),
+            "normalized_amount": payload.get("normalized_amount"),
+            "displayed_donor_name": payload.get("displayed_donor_name"),
+            "displayed_message": payload.get("displayed_message"),
+            "displayed_date": payload.get("displayed_date"),
+            "normalized_datetime": payload.get("normalized_datetime"),
+            "currency": payload.get("currency"),
+            "anonymous_indicator": payload.get("anonymous_indicator"),
+        }
+    else:
+        observed_facts = {
+            "observation_id": payload.get("observation_id"),
+            "fundraiser_total": payload.get("fundraiser_total"),
+            "fundraiser_goal": payload.get("fundraiser_goal"),
+            "displayed_donation_count": payload.get("displayed_donation_count"),
+            "observed_at": payload.get("observed_at"),
+            "currency": payload.get("currency"),
+        }
+    return {
+        "kind": kind,
+        "capture_metadata": capture_metadata,
+        "observed_facts": observed_facts,
+        "provenance": provenance,
+    }
+
 def ingest_capture_packs(data_dir: Path) -> dict[str, Any]:
     captures_root = data_dir / "captures"
     state_path = data_dir / "research" / "capture_ingestion_state.json"
@@ -413,8 +629,10 @@ def ingest_capture_packs(data_dir: Path) -> dict[str, Any]:
     review_queue_path = data_dir / "review" / "queue.json"
     manual_export_path = data_dir / "raw" / "gofundme_manual_export.json"
     aggregate_path = data_dir / "research" / "fundraiser_observations.json"
+    normalized_path = data_dir / "research" / "capture_observations.normalized.json"
     events_path = data_dir / "events" / "capture_events.jsonl"
     source_health_path = data_dir / "research" / "capture_source_health.json"
+    automation_config_path = data_dir / "research" / "automation_config.json"
 
     state = _load_json(state_path, {"processed_manifest_hashes": {}})
     processed_hashes = dict(state.get("processed_manifest_hashes", {}))
@@ -423,6 +641,16 @@ def ingest_capture_packs(data_dir: Path) -> dict[str, Any]:
     existing_export = _load_json(manual_export_path, {"records": []})
     existing_records = existing_export.get("records", []) if isinstance(existing_export, dict) else []
     existing_aggregates = _load_json(aggregate_path, [])
+    existing_normalized_payload = _load_json(normalized_path, {"observations": []})
+    existing_normalized = (
+        existing_normalized_payload.get("observations", [])
+        if isinstance(existing_normalized_payload, dict)
+        else []
+    )
+    automation_config = _load_json(
+        automation_config_path,
+        {"zero_drop_min_previous": REGRESSION_MIN_PREVIOUS_TOTAL, "near_zero_fraction": DEFAULT_NEAR_ZERO_FRACTION},
+    )
 
     canonical_by_id = {str(rec.get("donation_id")): rec for rec in existing_records if isinstance(rec, dict) and rec.get("donation_id")}
     aggregate_by_id = {
@@ -432,6 +660,14 @@ def ingest_capture_packs(data_dir: Path) -> dict[str, Any]:
         str(item.get("evidence", ""))
         for item in review_queue
         if isinstance(item, dict) and str(item.get("claim", "")).lower() == "conflict_detected"
+    }
+    existing_observation_keys = {
+        (
+            str(item.get("donation_id", "")),
+            str(item.get("collection_timestamp", "")),
+        )
+        for item in canonical_by_id.values()
+        if isinstance(item, dict)
     }
 
     seen = 0
@@ -443,8 +679,11 @@ def ingest_capture_packs(data_dir: Path) -> dict[str, Any]:
     conflicts = 0
     channel_counts: dict[str, int] = {key: 0 for key in sorted(ALLOWED_SOURCES)}
     events: list[dict[str, Any]] = []
+    normalized_observations = [item for item in existing_normalized if isinstance(item, dict)]
+    now = datetime.now(UTC)
 
     if not captures_root.exists():
+        _save_json(normalized_path, {"generated_at": datetime.now(UTC).isoformat(), "observations": normalized_observations})
         _save_json(source_health_path, {"sources": [], "summary": {"captures_seen": 0, "captures_accepted": 0}})
         return {
             "capture_packs_seen": 0,
@@ -496,18 +735,73 @@ def ingest_capture_packs(data_dir: Path) -> dict[str, Any]:
             continue
 
         accepted += 1
+        manifest["source_reliability"] = str(
+            manifest.get("source_reliability") or SOURCE_RELIABILITY.get(str(manifest["source"]), "UNKNOWN")
+        )
         source = str(manifest["source"])
         channel_counts[source] = channel_counts.get(source, 0) + 1
         pack_records: list[dict[str, Any]] = []
         pack_aggregates: list[dict[str, Any]] = []
+        artifact_hashes = _artifact_hash_index(artifacts)
+        extracted_any = False
         for artifact in artifacts:
-            recs, aggs, artifact_events = _extract_for_artifact(pack_dir, artifact, manifest)
+            recs, aggs, artifact_events = _extract_for_artifact(pack_dir, artifact, manifest, artifact_hashes)
             pack_records.extend(recs)
             pack_aggregates.extend(aggs)
             events.extend(artifact_events)
+            if recs or aggs:
+                extracted_any = True
+
+        if not extracted_any:
+            review_queue.append(
+                _review_item(
+                    "gofundme-fundraiser-page",
+                    "parser_structure_change",
+                    f"capture:{manifest.get('capture_id', capture_id)}",
+                    "HIGH_RISK",
+                )
+            )
+            events.append(
+                _manifest_event(
+                    str(manifest["capture_id"]),
+                    "SOURCE_STRUCTURE_CHANGED",
+                    {"reason": "capture contained no extractable observations"},
+                )
+            )
 
         for record in pack_records:
             key = str(record["donation_id"])
+            quality_issues = _collect_record_quality_issues(record, now)
+            if quality_issues:
+                review_queue.append(
+                    _review_item(
+                        "gofundme-fundraiser-page",
+                        "validation_error",
+                        f"donation:{key}:{'|'.join(sorted(quality_issues))}",
+                        "HIGH_RISK",
+                    )
+                )
+                events.append(
+                    _manifest_event(
+                        str(manifest["capture_id"]),
+                        "CAPTURE_PARSE_WARNING",
+                        {"field": "donation_record", "record_id": key, "issues": quality_issues},
+                    )
+                )
+                continue
+
+            observation_key = (key, str(record.get("collection_timestamp", "")))
+            if observation_key in existing_observation_keys:
+                events.append(
+                    _manifest_event(
+                        str(manifest["capture_id"]),
+                        "DUPLICATE_OBSERVATION",
+                        {"record_id": key, "collection_timestamp": record.get("collection_timestamp")},
+                    )
+                )
+                continue
+            existing_observation_keys.add(observation_key)
+            normalized_observations.append(_to_intermediate_observation("donation", record))
             current = canonical_by_id.get(key)
             if current is None:
                 canonical_by_id[key] = record
@@ -540,11 +834,70 @@ def ingest_capture_packs(data_dir: Path) -> dict[str, Any]:
                     )
                 )
 
+        previous_totals = [
+            float(item.get("fundraiser_total"))
+            for item in aggregate_by_id.values()
+            if isinstance(item, dict) and isinstance(item.get("fundraiser_total"), (int, float))
+        ]
+        previous_max_total = max(previous_totals) if previous_totals else None
+        near_zero_fraction = float(automation_config.get("near_zero_fraction", DEFAULT_NEAR_ZERO_FRACTION))
+        zero_drop_min_previous = float(automation_config.get("zero_drop_min_previous", REGRESSION_MIN_PREVIOUS_TOTAL))
+
         for aggregate in pack_aggregates:
+            agg_issues = _collect_aggregate_quality_issues(aggregate, now)
+            if agg_issues:
+                review_queue.append(
+                    _review_item(
+                        "gofundme-fundraiser-page",
+                        "validation_error",
+                        f"aggregate:{aggregate.get('observation_id')}:{'|'.join(sorted(agg_issues))}",
+                        "HIGH_RISK",
+                    )
+                )
+                events.append(
+                    _manifest_event(
+                        str(manifest["capture_id"]),
+                        "CAPTURE_PARSE_WARNING",
+                        {"field": "aggregate_observation", "issues": agg_issues},
+                    )
+                )
+                continue
+
+            current_total = aggregate.get("fundraiser_total")
+            if (
+                isinstance(previous_max_total, (int, float))
+                and isinstance(current_total, (int, float))
+                and previous_max_total >= zero_drop_min_previous
+                and current_total / previous_max_total <= near_zero_fraction
+            ):
+                regression_key = f"aggregate-regression:{previous_max_total}->{current_total}"
+                if regression_key not in existing_conflicts:
+                    review_queue.append(
+                        _review_item(
+                            "gofundme-fundraiser-page",
+                            "conflict_detected",
+                            regression_key,
+                            "HIGH_RISK",
+                        )
+                    )
+                    existing_conflicts.add(regression_key)
+                    conflicts += 1
+                events.append(
+                    _manifest_event(
+                        str(manifest["capture_id"]),
+                        "IMPOSSIBLE_REGRESSION_DETECTED",
+                        {"previous_total": previous_max_total, "current_total": current_total},
+                    )
+                )
+                continue
+
             oid = str(aggregate["observation_id"])
             if oid not in aggregate_by_id:
                 aggregate_by_id[oid] = aggregate
                 aggregates_added += 1
+                if isinstance(current_total, (int, float)):
+                    previous_max_total = max(float(current_total), float(previous_max_total or current_total))
+                normalized_observations.append(_to_intermediate_observation("aggregate", aggregate))
 
         processed_hashes[capture_id] = manifest_hash
 
@@ -602,6 +955,7 @@ def ingest_capture_packs(data_dir: Path) -> dict[str, Any]:
         },
     )
     _save_json(aggregate_path, aggregate_records)
+    _save_json(normalized_path, {"generated_at": datetime.now(UTC).isoformat(), "observations": normalized_observations})
     _save_json(quarantine_path, quarantine)
     _save_json(review_queue_path, review_queue)
     _save_json(state_path, {"processed_manifest_hashes": processed_hashes, "last_run": datetime.now(UTC).isoformat()})
@@ -624,6 +978,33 @@ def ingest_capture_packs(data_dir: Path) -> dict[str, Any]:
                 "parser_version": "capture-pack-v1",
             }
         )
+    unresolved_review_items = [
+        item
+        for item in review_queue
+        if isinstance(item, dict) and str(item.get("status", "")).upper() in {"NEW", "UNDER_REVIEW", "PENDING_REVIEW"}
+    ]
+    conflict_open_count = len(
+        [
+            item
+            for item in unresolved_review_items
+            if str(item.get("claim", "")).lower() == "conflict_detected"
+        ]
+    )
+    donor_level_count = len([item for item in canonical_records if item.get("displayed_donor_name")])
+    aggregate_count = len(aggregate_records)
+    denominator = donor_level_count + aggregate_count
+    donor_level_share = round(donor_level_count / denominator, 6) if denominator else 0.0
+    aggregate_only_share = round(aggregate_count / denominator, 6) if denominator else 0.0
+    review_timestamps: list[datetime] = []
+    for item in unresolved_review_items:
+        candidate = _parse_iso_datetime(str(item.get("submitted_at") or item.get("created_at") or ""))
+        if candidate:
+            review_timestamps.append(candidate)
+    review_backlog_oldest_hours = (
+        round((datetime.now(UTC) - min(review_timestamps)).total_seconds() / 3600.0, 3)
+        if review_timestamps
+        else 0.0
+    )
     _save_json(
         source_health_path,
         {
@@ -636,6 +1017,11 @@ def ingest_capture_packs(data_dir: Path) -> dict[str, Any]:
                 "records_updated": records_updated,
                 "aggregate_observations_added": aggregates_added,
                 "conflicts_detected": conflicts,
+                "coverage_ratio": donor_level_share,
+                "donor_level_share": donor_level_share,
+                "aggregate_only_share": aggregate_only_share,
+                "unresolved_conflict_count": conflict_open_count,
+                "review_backlog_oldest_hours": review_backlog_oldest_hours,
             },
         },
     )
@@ -720,6 +1106,7 @@ def create_capture_pack(
         "captured_at": now_iso,
         "collector_version": collector_version,
         "capture_type": capture_type,
+        "source_reliability": SOURCE_RELIABILITY.get(source, "UNKNOWN"),
         "artifacts": artifacts,
     }
     errors = validate_capture_manifest(manifest)
@@ -733,3 +1120,4 @@ def git_commit_capture_pack(repo_root: Path, capture_dir: Path, message: str) ->
     rel_dir = capture_dir.relative_to(repo_root)
     subprocess.run(["git", "add", str(rel_dir)], cwd=repo_root, check=True)
     subprocess.run(["git", "commit", "-m", message], cwd=repo_root, check=True)
+        effective_captured_at = _parse_iso(str(effective_manifest["captured_at"]))

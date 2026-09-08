@@ -46,6 +46,15 @@
         "mixed"
       ]
     },
+    "source_reliability": {
+      "type": "string",
+      "enum": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ]
+    },
     "artifacts": {
       "type": "array",
       "minItems": 1,

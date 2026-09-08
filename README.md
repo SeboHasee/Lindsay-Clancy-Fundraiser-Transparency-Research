@@ -80,6 +80,7 @@ python -m research audit
 - Data classification policy map: `data/schema/data_classification.json`
 - Event stream: `data/events/events.jsonl`
 - Review queue: `data/review/queue.json`
+- Normalized capture observations: `data/research/capture_observations.normalized.json`
 
 ## Community input
 
@@ -120,9 +121,10 @@ On ingestion, the system:
 2. quarantines invalid packs to `data/review/capture_quarantine.json`,
 3. extracts structured observations (export → HTML → text-pattern fallback),
 4. updates canonical records in `data/raw/gofundme_manual_export.json`,
-5. appends aggregate fundraiser observations to `data/research/fundraiser_observations.json`,
-6. emits capture events to `data/events/capture_events.jsonl`,
-7. routes unresolved conflicts to `data/review/queue.json`.
+5. writes ingestion-contract observations to `data/research/capture_observations.normalized.json`,
+6. appends aggregate fundraiser observations to `data/research/fundraiser_observations.json`,
+7. emits capture events to `data/events/capture_events.jsonl`,
+8. routes unresolved conflicts to `data/review/queue.json`.
 
 ## Reproducibility and contribution
 
