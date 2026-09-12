@@ -206,5 +206,21 @@
     "coverage": "Partially observable dataset",
     "software_version": "0.1.0",
     "dataset_version": "v0.1.0"
+  },
+  {
+    "run_id": "8e489f90-f1b2-4251-97d6-cbea24252b35",
+    "start_time": "2026-09-12T11:19:29.207117+00:00",
+    "end_time": "2026-09-12T11:19:29.207937+00:00",
+    "collector": "monitoring_engine",
+    "source": "*",
+    "records_seen": 0,
+    "records_added": 0,
+    "records_changed": 0,
+    "records_rejected": 0,
+    "errors": "",
+    "warnings": "",
+    "coverage": "Partially observable dataset",
+    "software_version": "0.1.0",
+    "dataset_version": "v0.1.0"
   }
 ]
